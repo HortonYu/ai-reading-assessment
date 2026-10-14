@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 全维语言能力 AI 评测平台 - 后端核心
-100% 真实调用 DeepSeek 动态出题与深度批阅打分
+【100% 真实 DeepSeek 调用】坚决杜绝假题目与无作答虚假分数
 """
 import os
 import time
@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="乡村教育全维语言评测引擎", version="4.0.0")
+app = FastAPI(title="乡村教育全维语言评测引擎", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,10 +27,9 @@ app.add_middleware(
 )
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
-DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-# 寻找前端目录
 def find_frontend_dir():
     candidates = [
         os.path.join(os.getcwd(), "frontend"),
@@ -52,7 +51,7 @@ FRONTEND_DIR = find_frontend_dir()
 def serve_home():
     if FRONTEND_DIR and os.path.exists(os.path.join(FRONTEND_DIR, "index.html")):
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-    return HTMLResponse("<h2>AI评测服务运行中</h2>")
+    return HTMLResponse("<h2>AI评测服务正常运行</h2>")
 
 @app.get("/{page_name}")
 def serve_pages(page_name: str):
@@ -66,15 +65,14 @@ def serve_pages(page_name: str):
                 return FileResponse(html_target)
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-# 真实调用 DeepSeek API（设置充足超时为 60 秒）
-def call_deepseek(prompt: str, system_prompt: str, user_api_key: str = None) -> dict:
-    api_key = (user_api_key or DEEPSEEK_API_KEY).strip()
-    if not api_key:
-        raise HTTPException(status_code=400, detail="未检测到有效 DeepSeek API Key，请检查配置！")
+# 真实调用 DeepSeek API，报错直接透传，绝不静默隐藏
+def request_deepseek(prompt: str, system_prompt: str) -> dict:
+    if not DEEPSEEK_API_KEY:
+        raise HTTPException(status_code=400, detail="未配置 DEEPSEEK_API_KEY，请在 Render 后台 Environment 中填入密钥！")
 
     url = f"{DEEPSEEK_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -83,91 +81,89 @@ def call_deepseek(prompt: str, system_prompt: str, user_api_key: str = None) -> 
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.8,
+        "temperature": 0.9,
         "response_format": {"type": "json_object"}
     }
     
-    # 充足超时，保证 DeepSeek 完整生成整套卷子
-    resp = requests.post(url, headers=headers, json=payload, timeout=60)
-    resp.raise_for_status()
-    res_data = resp.json()
-    return json.loads(res_data["choices"][0]["message"]["content"])
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        if resp.status_code == 402:
+            raise HTTPException(status_code=402, detail="DeepSeek 账户余额不足(402 Payment Required)！请先在 platform.deepseek.com 充值 1~2 元。")
+        if resp.status_code == 401:
+            raise HTTPException(status_code=401, detail="DeepSeek API Key 无效，请检查 Render 中的密钥是否正确！")
+        resp.raise_for_status()
+        res_data = resp.json()
+        return json.loads(res_data["choices"][0]["message"]["content"])
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="DeepSeek 官方服务器响应超时，请重试！")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"调用 DeepSeek 接口通信失败: {str(e)}")
 
 
 class GenerateTestRequest(BaseModel):
     grade: str = "mid"
     student_id: str = "学生"
-    api_key: str = ""
 
 @app.post("/api/generate_all_modules")
 def generate_all_modules(req: GenerateTestRequest):
-    """【真·AI出题】：由 DeepSeek 根据学段深度命制全套考卷"""
+    """【真·AI出题】：严格按年级段让 DeepSeek 原创命题"""
     grade_desc_map = {
-        "low": "小学低年级 (1-2年级，以声韵母辨识与童趣故事为主)",
-        "mid": "小学中年级 (3-4年级，注重前后鼻音、句式连贯与细节概括)",
-        "high": "小学高年级 (5-6年级，注重语调修辞、情感内涵与逻辑思维)"
+        "low": "小学低年级 (1-2年级，侧重基础童话、拼音字词辨识与朗读清晰度)",
+        "mid": "小学中年级 (3-4年级，侧重散文叙事、前后鼻音、句式停连与细节把握)",
+        "high": "小学高年级 (5-6年级，侧重思想哲理、修辞意蕴、深层推断与逻辑表达)"
     }
     grade_desc = grade_desc_map.get(req.grade, "小学中年级 (3-4年级)")
+    batch_seed = int(time.time() * 1000) % 100000
 
     system_prompt = (
-        "你是一名国家级普通话水平测试员、小学语文课标命题专家，深耕中国乡村教育。"
-        "请为指定学段量身原创一套高品质全维语文测评试题（包含听力、口语、阅读、写作）。"
-        "题目必须兼具文学性与思维推断深度，坚决杜绝低幼直白问题。必须返回合规的 JSON 对象。"
+        "你是一名国家级普通话水平测试员及小学语文教材命题专家。"
+        "请根据所指定的学段要求，为中国乡村小学儿童量身原创命制全套全维语文试卷。"
+        "必须严格根据所给学段的认知规律出题，题目需兼具文学性与思维推断深度，坚决杜绝低幼问题。"
+        "必须严格输出符合规范的 JSON 对象。"
     )
 
     user_prompt = f"""
-    请为【{grade_desc}】动态创作一套全维语文综合测评试卷（随机批次: {int(time.time()*1000)%10000}）：
-
-    【四模块具体命题指标】：
+    【命题任务】：请为【{grade_desc}】原创生成一套全新的全维测评试卷（随机批次种子: {batch_seed}）：
+    
     1. listening (听力理解):
-       - passage: 适合听记的哲理小故事或生活观察故事（110-150字）
-       - questions: 2道细节理解与深层推断选择题，每题必须包含 id, question, options (A/B/C/D四个完整选项), answer (正确选项字母如 "A"或"B")
+       - passage: 适合听记的生动故事或生活对话（字数按学段：低段80字，中段130字，高段180字）
+       - questions: 2道细节理解与逻辑推断题，每题包含 id, question, options (4个选项), answer (正确选项字母)
     2. speaking (口语表达):
        - title: 朗读文章标题
-       - passage: 优美散文语段（110-140字，融入平翘舌zh/ch/sh、前后鼻音en/eng、in/ing等易错发音）
+       - passage: 针对乡村方言特征（平翘舌、前后鼻音）的适龄美文（字数：低段80字，中段130字，高段170字）
     3. reading (阅读理解):
        - title: 阅读短文标题
-       - passage: 寓意深刻的自然观察或生活哲理微短文（160-220字）
-       - questions: 2道深度主旨推断或词句含义分析题，每题包含 id, question, options (A/B/C/D四个选项), answer (正确选项字母)
+       - passage: 寓意深刻的自然观察或生活哲理短文（字数：低段120字，中段180字，高段250字）
+       - questions: 2道深度主旨或词句推断题，每题包含 id, question, options (4个选项), answer (正确选项字母)
     4. writing (核心写作):
-       - topic: 作文题目
-       - prompt: 启发式情境引导语（80-120字要求，激发乡村儿童真情实感表达）
+       - topic: 贴近乡村儿童生活的写作题目
+       - prompt: 启发式情境引导语（激发真情实感）
 
-    严格返回如下结构的合规 JSON：
+    必须严格按如下 JSON 结构返回：
     {{
       "grade_desc": "{grade_desc}",
       "listening": {{
-        "passage": "听力播报正文...",
+        "passage": "听力文章正文...",
         "questions": [
-          {{ "id": 1, "question": "听力题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "B" }},
-          {{ "id": 2, "question": "听力题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "C" }}
+          {{ "id": 1, "question": "题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "B" }},
+          {{ "id": 2, "question": "题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "C" }}
         ]
       }},
-      "speaking": {{
-        "title": "朗读篇名",
-        "passage": "朗读全文..."
-      }},
+      "speaking": {{ "title": "朗读标题", "passage": "朗读正文..." }},
       "reading": {{
-        "title": "阅读短文标题",
+        "title": "阅读标题",
         "passage": "阅读正文...",
         "questions": [
-          {{ "id": 1, "question": "阅读题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "A" }},
-          {{ "id": 2, "question": "阅读题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "D" }}
+          {{ "id": 1, "question": "题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "A" }},
+          {{ "id": 2, "question": "题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "D" }}
         ]
       }},
-      "writing": {{
-        "topic": "写作题目",
-        "prompt": "情境引导语..."
-      }}
+      "writing": {{ "topic": "写作题目", "prompt": "情境引导语..." }}
     }}
     """
 
-    try:
-        data = call_deepseek(user_prompt, system_prompt, req.api_key)
-        return {"status": "success", "engine": "DeepSeek-V3 实时命题", "data": data}
-    except Exception as e:
-        print(f"DeepSeek 出题报错: {e}")
-        raise HTTPException(status_code=500, detail=f"DeepSeek 命题失败: {str(e)}")
+    data = request_deepseek(user_prompt, system_prompt)
+    return {"status": "success", "engine": "DeepSeek-V3 实时命题", "data": data}
 
 
 class EvaluateRequest(BaseModel):
@@ -175,74 +171,79 @@ class EvaluateRequest(BaseModel):
     grade: str
     test_data: dict
     student_answers: dict
-    api_key: str = ""
 
 @app.post("/api/evaluate_submission")
 def evaluate_submission(req: EvaluateRequest):
-    """【真·AI打分】：由 DeepSeek 亲自批阅作答，量化打分并生成 Rubric 与多维图谱数据"""
-    grade_desc_map = {"low": "小学低年级", "mid": "小学中年级", "high": "小学高年级"}
-    grade_desc = grade_desc_map.get(req.grade, "小学中年级")
+    """【真·AI客观判分】：对实际作答进行严格打分，空白作答一律 0 分"""
+    l_ans = req.student_answers.get("listening", {})
+    r_ans = req.student_answers.get("reading", {})
+    spk_duration = req.student_answers.get("speaking_duration", 0)
+    writing_text = req.student_answers.get("writing", "").strip()
 
+    # 严格判定：未作答模块坚决给 0 分，绝不造假
+    has_listening = len(l_ans) > 0
+    has_speaking = spk_duration >= 3
+    has_reading = len(r_ans) > 0
+    has_writing = len(writing_text) > 5
+
+    # 如果四个模块全部未作答，直接给出客观真实的 0 分报告
+    if not (has_listening or has_speaking or has_reading or has_writing):
+        return {
+            "status": "success",
+            "data": {
+                "scores": {"listening": 0, "speaking": 0, "reading": 0, "writing": 0, "overall": 0},
+                "level": "未完成测评 (0分)",
+                "gap_analysis": "考生在本次测试中未作答任何听力与阅读选择题、未进行口语录音，且未提交作文内容。无法评估其语言发展能力。",
+                "rubric_table": [
+                    {"dimension": "听力理解 (Listening)", "max_score": 100, "score": 0, "criteria": "准确抓取语流细节", "deduction_analysis": "考生未提交任何听力答案，判 0 分", "status": "未作答"},
+                    {"dimension": "口语表达 (Speaking)", "max_score": 100, "score": 0, "criteria": "普通话发音规范清晰", "deduction_analysis": "未检测到有效朗读录音（时长不足3秒），判 0 分", "status": "未作答"},
+                    {"dimension": "阅读理解 (Reading)", "max_score": 100, "score": 0, "criteria": "快速把握主旨与修辞", "deduction_analysis": "考生未提交任何阅读答案，判 0 分", "status": "未作答"},
+                    {"dimension": "核心写作 (Writing)", "max_score": 100, "score": 0, "criteria": "书面用词丰富，真情实感", "deduction_analysis": "作文内容为空，判 0 分", "status": "未作答"}
+                ],
+                "rural_speech_diagnostic": ["本次测评因未作答无法提取语言学特征。"],
+                "teaching_advice": ["建议引导学生消除畏难心理，在老师或志愿者陪同下完成完整测试。"]
+            }
+        }
+
+    # 有作答内容时，交由 DeepSeek 进行深度阅卷与真实评分
     system_prompt = (
-        "你是一名国家级普通话测试员、儿童语言心理学专家及语文阅卷专家。"
-        "请对乡村小学留守儿童的实际作答（尤其是写作作文内容、口语用时和选择题）进行严谨客观的托福式多维打分。"
-        "必须结合学生实际写出的作文内容给出具体评析，严禁千篇一律套话。必须返回合规 JSON。"
+        "你是一名国家级普通话水平测试员及语文阅卷专家。"
+        "请根据学生实际提交的作答内容、作文文本、朗读用时进行严格客观的托福式多维打分。"
+        "未做的题目必须扣分，作文必须根据学生写的真实水平打分，严禁虚假高分。必须返回合法 JSON。"
     )
 
     user_prompt = f"""
-    【考生身份】：学号 {req.student_id}（学段: {grade_desc}）
-    【试卷考题内容】：
-    - 听力材料: {req.test_data.get('listening', {}).get('passage', '')}
-    - 听力题目与答案: {json.dumps(req.test_data.get('listening', {}).get('questions', []), ensure_ascii=False)}
-    - 口语朗读文本: {req.test_data.get('speaking', {}).get('passage', '')}
-    - 阅读材料与题目: {json.dumps(req.test_data.get('reading', {}), ensure_ascii=False)}
-    - 写作题目与要求: {json.dumps(req.test_data.get('writing', {}), ensure_ascii=False)}
+    【考生身份】：学号 {req.student_id}（学段代号: {req.grade}）
+    【试卷考题内容】：{json.dumps(req.test_data, ensure_ascii=False)}
+    【学生实际作答数据】：
+    - 听力作答: {json.dumps(l_ans, ensure_ascii=False)}
+    - 口语朗读时长: {spk_duration} 秒
+    - 阅读作答: {json.dumps(r_ans, ensure_ascii=False)}
+    - 核心写作实写作文: {json.dumps(writing_text, ensure_ascii=False)}
 
-    【学生实际作答内容】：
-    - 听力选择作答: {req.student_answers.get('listening', {})}
-    - 口语朗读实际用时: {req.student_answers.get('speaking_duration', 0)} 秒
-    - 阅读选择作答: {req.student_answers.get('reading', {})}
-    - 核心写作学生实际提交作文: {json.dumps(req.student_answers.get('writing', ''), ensure_ascii=False)}
+    【评分要求】：
+    1. 计算真实得分（0-100分）：未作答或错误的题目必须严格扣分；作文根据词汇、文意和表达客观打分。
+    2. 输出标准 Rubric 打分表，针对作文实际写出的优缺点给出具体点评分析。
+    3. 输出留守儿童语言发展断层分析与教学建议。
 
-    【打分与诊断要求】：
-    请客观给出四个维度分值（0-100分），并撰写标准 Rubric 打分细则表和留守儿童语言发展诊断报告。
-
-    严格返回如下 JSON 结构：
+    必须返回严格合法的 JSON：
     {{
-      "scores": {{
-        "listening": 85,
-        "speaking": 68,
-        "reading": 90,
-        "writing": 72,
-        "overall": 79
-      }},
+      "scores": {{ "listening": 80, "speaking": 60, "reading": 85, "writing": 65, "overall": 72 }},
       "level": "二级甲等 / 良好",
-      "gap_analysis": "深入分析该学生在输入型能力与输出型能力之间的发展断层特征...",
+      "gap_analysis": "结合学生真实分数的断层分析...",
       "rubric_table": [
-        {{ "dimension": "听力理解 (Listening)", "max_score": 100, "score": 85, "criteria": "评分基准...", "deduction_analysis": "具体失分与得分析...", "status": "优秀" }},
-        {{ "dimension": "口语表达 (Speaking)", "max_score": 100, "score": 68, "criteria": "评分基准...", "deduction_analysis": "具体分析...", "status": "需强化" }},
-        {{ "dimension": "阅读理解 (Reading)", "max_score": 100, "score": 90, "criteria": "评分基准...", "deduction_analysis": "具体分析...", "status": "优秀" }},
-        {{ "dimension": "核心写作 (Writing)", "max_score": 100, "score": 72, "criteria": "结合学生作文语句、词汇的评分基准...", "deduction_analysis": "针对学生真实作文内容的批改点评...", "status": "中等" }}
+        {{ "dimension": "听力理解 (Listening)", "max_score": 100, "score": 80, "criteria": "...", "deduction_analysis": "...", "status": "良" }},
+        {{ "dimension": "口语表达 (Speaking)", "max_score": 100, "score": 60, "criteria": "...", "deduction_analysis": "...", "status": "中" }},
+        {{ "dimension": "阅读理解 (Reading)", "max_score": 100, "score": 85, "criteria": "...", "deduction_analysis": "...", "status": "优" }},
+        {{ "dimension": "核心写作 (Writing)", "max_score": 100, "score": 65, "criteria": "...", "deduction_analysis": "对学生真实作文的点评...", "status": "中" }}
       ],
-      "rural_speech_diagnostic": [
-        "针对发音与心理特征诊断项1",
-        "针对发音与心理特征诊断项2",
-        "针对书面表达特征诊断项3"
-      ],
-      "teaching_advice": [
-        "教学提升对策1",
-        "亲情伴读对策2",
-        "写作支架对策3"
-      ]
+      "rural_speech_diagnostic": [ "诊断1", "诊断2", "诊断3" ],
+      "teaching_advice": [ "建议1", "建议2", "建议3" ]
     }}
     """
 
-    try:
-        data = call_deepseek(user_prompt, system_prompt, req.api_key)
-        return {"status": "success", "engine": "DeepSeek-V3 真实批阅", "data": data}
-    except Exception as e:
-        print(f"DeepSeek 打分报错: {e}")
-        raise HTTPException(status_code=500, detail=f"DeepSeek 批阅失败: {str(e)}")
+    data = request_deepseek(user_prompt, system_prompt)
+    return {"status": "success", "engine": "DeepSeek-V3 真实阅卷", "data": data}
 
 if __name__ == "__main__":
     import uvicorn
