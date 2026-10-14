@@ -30,7 +30,7 @@
     <!-- 题目加载遮罩 -->
     <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-      <h3 class="text-base font-bold text-slate-800">AI 正在根据课标动态生成高品质试卷...</h3>
+      <h3 class="text-base font-bold text-slate-800">DeepSeek 正在根据课标动态生成高品质试卷...</h3>
       <p class="text-xs text-slate-400 mt-2">包含文学性语段、音韵考察重点与思维逻辑题目</p>
     </div>
 
@@ -44,7 +44,6 @@
           <h3 class="text-base font-bold text-slate-900 mt-1">点击播放听力材料，回答下方问题</h3>
         </div>
 
-        <!-- 播放器区域 -->
         <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <button onclick="playListeningAudio()" id="btn-play-audio" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
@@ -123,11 +122,7 @@
     </div>
   </main>
 
-  <script src="app.js"></script>
   <script>
-    // 自动自适应网络环境：如果是本地文件协议，使用本地 8000 端口；如果是公网网站，自动使用相对路径
-    const API_ROOT = (window.location.protocol === 'file:') ? 'http://127.0.0.1:8000' : '';
-
     let currentStep = 1;
     let testData = null;
     let studentAnswers = {
@@ -148,7 +143,8 @@
     async function fetchExamData(grade, studentId) {
       try {
         const apiKey = localStorage.getItem("deepseek_api_key") || "";
-        const res = await fetch(`${API_ROOT}/api/generate_all_modules`, {
+        // 关键修复：直接请求云端同源接口，不再请求本地 127.0.0.1
+        const res = await fetch("/api/generate_all_modules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ grade: grade, student_id: studentId, api_key: apiKey })
@@ -158,10 +154,10 @@
           testData = json.data;
           renderExam(testData);
         } else {
-          alert("生成试题异常: " + (json.detail || "请检查网络或后端"));
+          alert("生成试题异常: " + (json.detail || "请检查网络"));
         }
       } catch (e) {
-        alert("无法连接到后端服务！如果你在本地测试，请确保 Mac 终端中已运行 python3 app.py；如果在公网访问，请确认云服务器已正常启动。");
+        alert("网络通信异常，请刷新重试！");
         console.error(e);
       }
     }
@@ -266,7 +262,6 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    // 口语录音计时
     let isSpkRecording = false;
     let spkTimer = null;
     let spkDuration = 0;
@@ -295,7 +290,7 @@
       document.getElementById("test-container").innerHTML = `
         <div class="text-center py-16">
           <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-          <h3 class="text-lg font-black text-slate-800">AI 正在全面批阅听、说、读、写作答...</h3>
+          <h3 class="text-lg font-black text-slate-800">DeepSeek 正在全面批阅听、说、读、写作答...</h3>
           <p class="text-xs text-slate-400 mt-2">测算语言能力断层，生成标准化四维图谱报告</p>
         </div>
       `;
@@ -305,7 +300,8 @@
         const grade = localStorage.getItem("current_student_grade") || "mid";
         const apiKey = localStorage.getItem("deepseek_api_key") || "";
 
-        const res = await fetch(`${API_ROOT}/api/evaluate_submission`, {
+        // 关键修复：直接向云端提交批阅请求
+        const res = await fetch("/api/evaluate_submission", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -324,7 +320,7 @@
           alert("批阅出错: " + (json.detail || "请检查后端"));
         }
       } catch (e) {
-        alert("无法连接到后端批阅接口！");
+        alert("无法连接到云端批阅接口！");
         console.error(e);
       }
     }
