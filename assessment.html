@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>综合测评进行中 - 全维语言能力测定</title>
   <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    // 强制自动补齐 www，彻底防止浏览器安全拦截 POST 请求
+    if (window.location.hostname === 'reading-assessment-tool.work') {
+      window.location.replace('https://www.reading-assessment-tool.work' + window.location.pathname);
+    }
+  </script>
+
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
