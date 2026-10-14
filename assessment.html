@@ -25,12 +25,14 @@
       <p class="text-xs text-slate-500 mt-1">请保持环境安静，按照提示认真作答</p>
     </div>
 
+    <!-- 动态进度加载提示框 -->
     <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-      <h3 class="text-base font-bold text-slate-800">DeepSeek 正在根据课标动态生成高品质试卷...</h3>
-      <p class="text-xs text-slate-400 mt-2">包含文学性语段、音韵考察重点与思维逻辑题目</p>
+      <h3 class="text-base font-bold text-slate-800" id="loading-title">正在出题中...</h3>
+      <p class="text-xs text-slate-500 mt-2" id="loading-desc">已连接云端大模型，预计 3~6 秒完成</p>
     </div>
 
+    <!-- 答题容器 -->
     <div id="test-container" class="hidden bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
 
       <!-- 模块 1: 听力理解 -->
@@ -126,11 +128,22 @@
       const studentId = localStorage.getItem("current_student_id") || "学生";
       const grade = localStorage.getItem("current_student_grade") || "mid";
       document.getElementById("nav-student-info").innerText = `考生: ${studentId} | 学段: ${grade.toUpperCase()}`;
+      
+      // 启动动态加载倒计时提示
+      let sec = 0;
+      const timer = setInterval(() => {
+        sec++;
+        const titleEl = document.getElementById("loading-title");
+        if (titleEl) {
+          titleEl.innerText = `DeepSeek 正在出题中 (${sec}s)...`;
+        }
+      }, 1000);
+
       await fetchExamData(grade, studentId);
+      clearInterval(timer);
     });
 
     async function fetchExamData(grade, studentId) {
-      let json = null;
       try {
         const apiKey = localStorage.getItem("deepseek_api_key") || "";
         const res = await fetch("/api/generate_all_modules", {
@@ -138,22 +151,16 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ grade: grade, student_id: studentId, api_key: apiKey })
         });
-        json = await res.json();
-      } catch (netErr) {
-        alert("网络通信异常，请确认网络畅通！");
-        return;
-      }
-
-      if (json && json.status === "success") {
-        try {
+        const json = await res.json();
+        if (json && json.status === "success") {
           testData = json.data;
           renderExam(testData);
-        } catch (renderErr) {
-          console.error("渲染异常:", renderErr);
-          alert("试题解析异常: " + renderErr.message);
+        } else {
+          alert("加载失败: " + (json ? json.detail : "请刷新"));
         }
-      } else {
-        alert("出题异常: " + (json ? json.detail : "未知"));
+      } catch (e) {
+        console.error("出题异常:", e);
+        alert("网络通信异常，请刷新重试！");
       }
     }
 
@@ -161,29 +168,27 @@
       document.getElementById("loading-box").classList.add("hidden");
       document.getElementById("test-container").classList.remove("hidden");
 
-      // 1. 听力渲染
+      // 听力
       const lq = document.getElementById("listening-questions");
       lq.innerHTML = "";
-      const lQuestions = d.listening?.questions || [];
-      lQuestions.forEach((q, idx) => {
+      (d.listening?.questions || []).forEach((q, idx) => {
         lq.appendChild(createQuestionCard("listening", q, idx));
       });
 
-      // 2. 口语渲染
+      // 口语
       document.getElementById("spk-title").innerText = d.speaking?.title || "口语表达";
       document.getElementById("spk-passage").innerText = d.speaking?.passage || "";
 
-      // 3. 阅读渲染
+      // 阅读
       document.getElementById("read-title").innerText = d.reading?.title || "阅读理解";
       document.getElementById("read-passage").innerText = d.reading?.passage || "";
       const rq = document.getElementById("reading-questions");
       rq.innerHTML = "";
-      const rQuestions = d.reading?.questions || [];
-      rQuestions.forEach((q, idx) => {
+      (d.reading?.questions || []).forEach((q, idx) => {
         rq.appendChild(createQuestionCard("reading", q, idx));
       });
 
-      // 4. 写作渲染
+      // 写作
       document.getElementById("write-topic").innerText = `模块四：写作 · ${d.writing?.topic || "命题写作"}`;
       document.getElementById("write-prompt").innerText = d.writing?.prompt || "";
     }
