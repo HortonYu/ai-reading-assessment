@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>综合测评进行中 - 全维语言能力测定</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- 顶部状态栏 -->
+  <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-2">
+      <span class="text-blue-800 font-extrabold text-base">📘 全维语言 AI 测评</span>
+      <span class="text-slate-300">|</span>
+      <span id="nav-student-info" class="text-xs text-slate-500 font-medium">考生：加载中</span>
+    </div>
+    <div class="flex items-center space-x-3 text-xs">
+      <span id="step-indicator" class="font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">模块一：听力理解</span>
+    </div>
+  </header>
+
+  <!-- 主体答题卡片 -->
+  <main class="max-w-3xl mx-auto px-4 py-10 flex-1 w-full">
+    <div class="text-center mb-6">
+      <h2 class="text-2xl font-black text-blue-900 tracking-tight">综合测评进行中</h2>
+      <p class="text-xs text-slate-500 mt-1">请保持环境安静，按照提示认真作答</p>
+    </div>
+
+    <!-- 题目加载遮罩 -->
+    <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+      <h3 class="text-base font-bold text-slate-800">AI 正在根据课标动态生成高品质试卷...</h3>
+      <p class="text-xs text-slate-400 mt-2">包含文学性语段、音韵考察重点与思维逻辑题目</p>
+    </div>
+
+    <!-- 答题容器 -->
+    <div id="test-container" class="hidden bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+
+      <!-- 模块 1: 听力理解 -->
+      <section id="module-listening" class="space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+          <span class="text-xs font-bold text-blue-600 uppercase">模块一：听力理解</span>
+          <h3 class="text-base font-bold text-slate-900 mt-1">点击播放听力材料，回答下方问题</h3>
+        </div>
+
+        <!-- 播放器区域 -->
+        <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <button onclick="playListeningAudio()" id="btn-play-audio" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
+              <span>🔊</span>
+              <span id="play-text">播报完整听力材料</span>
+            </button>
+            <span class="text-xs text-slate-500">（标准普通话 AI 语音合成）</span>
+          </div>
+          <span class="text-xs text-slate-400">建议听 1-2 遍</span>
+        </div>
+
+        <div id="listening-questions" class="space-y-5 pt-2"></div>
+      </section>
+
+      <!-- 模块 2: 口语表达 -->
+      <section id="module-speaking" class="hidden space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+          <span class="text-xs font-bold text-blue-600 uppercase">模块二：口语表达</span>
+          <h3 class="text-base font-bold text-slate-900 mt-1">请大声、饱满、自然地朗读以下段落</h3>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl">
+          <h4 id="spk-title" class="font-bold text-slate-900 text-base mb-3 text-center"></h4>
+          <p id="spk-passage" class="text-xl md:text-2xl text-slate-800 leading-relaxed tracking-wide select-none"></p>
+        </div>
+
+        <div class="flex flex-col items-center justify-center pt-2 space-y-3">
+          <button id="btn-spk-record" onclick="toggleSpeakingRecord()" class="w-16 h-16 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-transform active:scale-95">
+            <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+          </button>
+          <span id="spk-status" class="text-xs font-semibold text-slate-600">点击麦克风开始朗读录音</span>
+        </div>
+      </section>
+
+      <!-- 模块 3: 阅读理解 -->
+      <section id="module-reading" class="hidden space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+          <span class="text-xs font-bold text-blue-600 uppercase">模块三：阅读理解</span>
+          <h3 class="text-base font-bold text-slate-900 mt-1">请仔细阅读短文，完成深度理解题</h3>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl">
+          <h4 id="read-title" class="font-bold text-slate-900 text-base mb-3 text-center"></h4>
+          <p id="read-passage" class="text-base text-slate-800 leading-relaxed tracking-normal select-none"></p>
+        </div>
+
+        <div id="reading-questions" class="space-y-5 pt-2"></div>
+      </section>
+
+      <!-- 模块 4: 核心写作 -->
+      <section id="module-writing" class="hidden space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+          <span class="text-xs font-bold text-blue-600 uppercase">模块四：核心写作</span>
+          <h3 class="text-base font-bold text-slate-900 mt-1" id="write-topic">情境小作文</h3>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-900 leading-relaxed" id="write-prompt"></div>
+
+        <div>
+          <textarea id="write-input" rows="6" oninput="updateWordCount()" placeholder="在这里输入你的作文内容..." class="w-full p-4 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-slate-50"></textarea>
+          <div class="text-right text-xs text-slate-400 mt-1">已输入 <span id="write-count" class="font-bold text-slate-700">0</span> 字</div>
+        </div>
+      </section>
+
+      <!-- 导航按钮条 -->
+      <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+        <button id="btn-prev" onclick="prevStep()" class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50 hidden">
+          上一步
+        </button>
+        <div class="flex-1"></div>
+        <button id="btn-next" onclick="nextStep()" class="px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl text-xs font-bold shadow transition">
+          下一题：口语表达 →
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // 自动自适应网络环境：如果是本地文件协议，使用本地 8000 端口；如果是公网网站，自动使用相对路径
+    const API_ROOT = (window.location.protocol === 'file:') ? 'http://127.0.0.1:8000' : '';
+
+    let currentStep = 1;
+    let testData = null;
+    let studentAnswers = {
+      listening: {},
+      speaking_duration: 0,
+      reading: {},
+      writing: ""
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const studentId = localStorage.getItem("current_student_id") || "学生";
+      const grade = localStorage.getItem("current_student_grade") || "mid";
+      document.getElementById("nav-student-info").innerText = `考生: ${studentId} | 学段: ${grade.toUpperCase()}`;
+
+      await fetchExamData(grade, studentId);
+    });
+
+    async function fetchExamData(grade, studentId) {
+      try {
+        const apiKey = localStorage.getItem("deepseek_api_key") || "";
+        const res = await fetch(`${API_ROOT}/api/generate_all_modules`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ grade: grade, student_id: studentId, api_key: apiKey })
+        });
+        const json = await res.json();
+        if (json.status === "success") {
+          testData = json.data;
+          renderExam(testData);
+        } else {
+          alert("生成试题异常: " + (json.detail || "请检查网络或后端"));
+        }
+      } catch (e) {
+        alert("无法连接到后端服务！如果你在本地测试，请确保 Mac 终端中已运行 python3 app.py；如果在公网访问，请确认云服务器已正常启动。");
+        console.error(e);
+      }
+    }
+
+    function renderExam(d) {
+      document.getElementById("loading-box").classList.add("hidden");
+      document.getElementById("test-container").classList.remove("hidden");
+
+      // 1. 听力渲染
+      const lq = document.getElementById("listening-questions");
+      lq.innerHTML = "";
+      d.listening.questions.forEach((q, idx) => {
+        lq.appendChild(createQuestionCard("listening", q, idx));
+      });
+
+      // 2. 口语渲染
+      document.getElementById("spk-title").innerText = d.speaking.title;
+      document.getElementById("spk-passage").innerText = d.speaking.passage;
+
+      // 3. 阅读渲染
+      document.getElementById("read-title").innerText = d.reading.title;
+      document.getElementById("read-passage").innerText = d.reading.passage;
+      const rq = document.getElementById("reading-questions");
+      rq.innerHTML = "";
+      d.reading.questions.forEach((q, idx) => {
+        rq.appendChild(createQuestionCard("reading", q, idx));
+      });
+
+      // 4. 写作渲染
+      document.getElementById("write-topic").innerText = `模块四：写作 · ${d.writing.topic}`;
+      document.getElementById("write-prompt").innerText = d.writing.prompt;
+    }
+
+    function createQuestionCard(type, q, idx) {
+      const card = document.createElement("div");
+      card.className = "border border-slate-200 rounded-xl p-4 bg-white";
+      card.innerHTML = `
+        <div class="font-bold text-xs text-slate-800 mb-3">${idx + 1}. ${q.question}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          ${q.options.map(opt => `
+            <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="${type}_q_${q.id}" value="${opt[0]}" onchange="recordChoice('${type}', ${q.id}, '${opt[0]}')">
+              <span class="text-slate-700">${opt}</span>
+            </label>
+          `).join("")}
+        </div>
+      `;
+      return card;
+    }
+
+    function recordChoice(type, qId, val) {
+      studentAnswers[type][qId] = val;
+    }
+
+    function playListeningAudio() {
+      if (!testData || !testData.listening) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(testData.listening.passage);
+      utterance.lang = "zh-CN";
+      utterance.rate = 0.9;
+      document.getElementById("play-text").innerText = "正在播报中...";
+      utterance.onend = () => {
+        document.getElementById("play-text").innerText = "播报完毕 (可再次点击重听)";
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function updateWordCount() {
+      const val = document.getElementById("write-input").value;
+      studentAnswers.writing = val;
+      document.getElementById("write-count").innerText = val.length;
+    }
+
+    function nextStep() {
+      if (currentStep === 1) {
+        showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
+      } else if (currentStep === 2) {
+        showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
+      } else if (currentStep === 3) {
+        showModule(4, "模块四：核心写作", "提交并由 AI 批阅 🚀");
+      } else if (currentStep === 4) {
+        submitAllAnswers();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep === 2) showModule(1, "模块一：听力理解", "下一题：口语表达 →");
+      else if (currentStep === 3) showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
+      else if (currentStep === 4) showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
+    }
+
+    function showModule(step, indicatorText, nextBtnText) {
+      currentStep = step;
+      document.getElementById("step-indicator").innerText = indicatorText;
+      document.getElementById("btn-next").innerText = nextBtnText;
+      document.getElementById("btn-prev").classList.toggle("hidden", step === 1);
+
+      document.getElementById("module-listening").classList.toggle("hidden", step !== 1);
+      document.getElementById("module-speaking").classList.toggle("hidden", step !== 2);
+      document.getElementById("module-reading").classList.toggle("hidden", step !== 3);
+      document.getElementById("module-writing").classList.toggle("hidden", step !== 4);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // 口语录音计时
+    let isSpkRecording = false;
+    let spkTimer = null;
+    let spkDuration = 0;
+    function toggleSpeakingRecord() {
+      const btn = document.getElementById("btn-spk-record");
+      if (!isSpkRecording) {
+        isSpkRecording = true;
+        spkDuration = 0;
+        btn.classList.add("bg-emerald-600");
+        btn.classList.remove("bg-rose-500");
+        spkTimer = setInterval(() => {
+          spkDuration++;
+          document.getElementById("spk-status").innerText = `🎙️ 正在录音：${spkDuration} 秒 (读完再次点击停止)`;
+        }, 1000);
+      } else {
+        isSpkRecording = false;
+        clearInterval(spkTimer);
+        studentAnswers.speaking_duration = spkDuration;
+        btn.classList.remove("bg-emerald-600");
+        btn.classList.add("bg-rose-500");
+        document.getElementById("spk-status").innerText = `录音完成 (用时 ${spkDuration} 秒)，请点击“下一步”`;
+      }
+    }
+
+    async function submitAllAnswers() {
+      document.getElementById("test-container").innerHTML = `
+        <div class="text-center py-16">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+          <h3 class="text-lg font-black text-slate-800">AI 正在全面批阅听、说、读、写作答...</h3>
+          <p class="text-xs text-slate-400 mt-2">测算语言能力断层，生成标准化四维图谱报告</p>
+        </div>
+      `;
+
+      try {
+        const studentId = localStorage.getItem("current_student_id") || "学生";
+        const grade = localStorage.getItem("current_student_grade") || "mid";
+        const apiKey = localStorage.getItem("deepseek_api_key") || "";
+
+        const res = await fetch(`${API_ROOT}/api/evaluate_submission`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            student_id: studentId,
+            grade: grade,
+            test_data: testData,
+            student_answers: studentAnswers,
+            api_key: apiKey
+          })
+        });
+        const json = await res.json();
+        if (json.status === "success") {
+          localStorage.setItem("assessment_result", JSON.stringify(json.data));
+          window.location.href = "result.html";
+        } else {
+          alert("批阅出错: " + (json.detail || "请检查后端"));
+        }
+      } catch (e) {
+        alert("无法连接到后端批阅接口！");
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>

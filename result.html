@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>留守儿童语言能力多维图谱与诊断报告</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Chart.js 用于渲染专业四维能力雷达图 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- 顶部状态栏 -->
+  <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-2">
+      <span class="text-blue-900 font-extrabold text-base">📘 全维语言 AI 诊断书</span>
+      <span class="text-slate-300">|</span>
+      <span id="res-student-title" class="text-xs text-slate-500 font-medium">学号: -</span>
+    </div>
+    <div>
+      <button onclick="window.print()" class="text-xs px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition shadow-sm">
+        🖨️ 打印 / 导出 PDF 诊断单
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-10 flex-1 w-full space-y-8">
+
+    <div class="text-center">
+      <h2 class="text-2xl md:text-3xl font-black text-blue-950 tracking-tight">留守儿童语言能力多维图谱与诊断</h2>
+      <p class="text-xs text-slate-500 mt-1" id="res-subtitle">评测引擎：DeepSeek-V3 语言发展测量模型</p>
+    </div>
+
+    <!-- 图谱核心看板：雷达图 + 四大得分卡 -->
+    <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <!-- 左侧：雷达图 -->
+      <div class="w-full h-64 md:h-72 flex items-center justify-center">
+        <canvas id="radarChart"></canvas>
+      </div>
+
+      <!-- 右侧：四维得分小卡片 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+          <div class="text-xs text-slate-500 mb-1 flex items-center justify-center space-x-1">
+            <span>🎧</span><span>听力理解</span>
+          </div>
+          <div class="text-3xl font-black text-blue-900" id="card-score-listening">--</div>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+          <div class="text-xs text-slate-500 mb-1 flex items-center justify-center space-x-1">
+            <span>🎙️</span><span>口语表达</span>
+          </div>
+          <div class="text-3xl font-black text-blue-900" id="card-score-speaking">--</div>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+          <div class="text-xs text-slate-500 mb-1 flex items-center justify-center space-x-1">
+            <span>📖</span><span>阅读理解</span>
+          </div>
+          <div class="text-3xl font-black text-blue-900" id="card-score-reading">--</div>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+          <div class="text-xs text-slate-500 mb-1 flex items-center justify-center space-x-1">
+            <span>✍️</span><span>核心写作</span>
+          </div>
+          <div class="text-3xl font-black text-blue-900" id="card-score-writing">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 专家深度诊断（输入与输出能力断层） -->
+    <div class="bg-blue-900 text-white rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
+      <div class="flex items-center space-x-2 text-sm font-bold text-blue-200 uppercase tracking-wider">
+        <span>🤖</span><span>AI 专家深度发展断层诊断</span>
+      </div>
+      <p class="text-base text-blue-50 leading-relaxed font-normal" id="res-gap-analysis"></p>
+    </div>
+
+    <!-- 标准化打分细则表 (Scoring Rubric Table) -->
+    <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+        <span>📋</span><span>标准化全维打分表 (Scoring Rubric Table)</span>
+      </h3>
+      <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase">
+            <tr>
+              <th class="px-4 py-3">考核模块</th>
+              <th class="px-4 py-3">满分</th>
+              <th class="px-4 py-3">得分</th>
+              <th class="px-4 py-3">课标达标基准</th>
+              <th class="px-4 py-3">失分分析与扣分说明</th>
+              <th class="px-4 py-3">评价等级</th>
+            </tr>
+          </thead>
+          <tbody id="res-rubric-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 乡村方言与留守儿童语音发展特征 -->
+    <div class="bg-amber-50 border border-amber-200 p-6 rounded-2xl space-y-3">
+      <h3 class="text-sm font-bold text-amber-950 flex items-center space-x-1.5">
+        <span>🔍</span><span>检测到的方言口音与深层心理特征</span>
+      </h3>
+      <ul class="space-y-1.5 text-xs text-amber-900" id="res-rural-patterns"></ul>
+    </div>
+
+    <!-- 针对性教学与关爱提升建议 -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+        <span>💡</span><span>针对性教学与亲情伴读对策建议</span>
+      </h3>
+      <ul class="space-y-2 text-xs text-slate-700" id="res-advice"></ul>
+    </div>
+
+    <div class="text-center pt-4">
+      <button onclick="window.location.href='index.html'" class="text-xs text-blue-700 hover:underline font-bold">
+        ← 返回首页，开始新的学生评测
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const raw = localStorage.getItem("assessment_result");
+      const studentId = localStorage.getItem("current_student_id") || "学生";
+      document.getElementById("res-student-title").innerText = `学号: ${studentId}`;
+
+      if (!raw) {
+        alert("暂无测评数据，正在返回首页");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const data = JSON.parse(raw);
+      renderResultPage(data);
+    });
+
+    function renderResultPage(d) {
+      // 填入四维得分卡
+      document.getElementById("card-score-listening").innerText = d.scores.listening;
+      document.getElementById("card-score-speaking").innerText = d.scores.speaking;
+      document.getElementById("card-score-reading").innerText = d.scores.reading;
+      document.getElementById("card-score-writing").innerText = d.scores.writing;
+      document.getElementById("res-gap-analysis").innerText = d.gap_analysis;
+
+      // 绘制雷达图
+      const ctx = document.getElementById("radarChart").getContext("2d");
+      new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: ["听力理解", "口语表达", "阅读理解", "核心写作"],
+          datasets: [{
+            label: "能力得分",
+            data: [d.scores.listening, d.scores.speaking, d.scores.reading, d.scores.writing],
+            backgroundColor: "rgba(30, 64, 175, 0.2)",
+            borderColor: "rgba(30, 64, 175, 1)",
+            borderWidth: 2,
+            pointBackgroundColor: "rgba(30, 64, 175, 1)",
+            pointRadius: 4
+          }]
+        },
+        options: {
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              ticks: { stepSize: 20, font: { size: 9 } },
+              pointLabels: { font: { size: 11, weight: "bold" } }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // 渲染打分表
+      const tbody = document.getElementById("res-rubric-body");
+      tbody.innerHTML = "";
+      (d.rubric_table || []).forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-slate-900">${r.dimension}</td>
+          <td class="px-4 py-3 text-slate-500">${r.max_score}</td>
+          <td class="px-4 py-3 font-extrabold text-blue-700">${r.score}</td>
+          <td class="px-4 py-3 text-slate-600">${r.criteria}</td>
+          <td class="px-4 py-3 text-rose-600">${r.deduction_analysis}</td>
+          <td class="px-4 py-3 font-semibold text-emerald-700">${r.status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // 方言模式
+      const patList = document.getElementById("res-rural-patterns");
+      patList.innerHTML = "";
+      (d.rural_speech_diagnostic || []).forEach(pat => {
+        const li = document.createElement("li");
+        li.innerText = `● ${pat}`;
+        patList.appendChild(li);
+      });
+
+      // 建议
+      const advList = document.getElementById("res-advice");
+      advList.innerHTML = "";
+      (d.teaching_advice || []).forEach(adv => {
+        const li = document.createElement("li");
+        li.className = "flex items-start space-x-1.5";
+        li.innerHTML = `<span class="text-blue-700 font-bold">•</span><span>${adv}</span>`;
+        advList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
