@@ -5,454 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全维语言 AI 评测平台 - 精准诊断助力乡村基础教育</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- 顶部导航 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-700 flex items-center justify-center text-white font-extrabold text-lg shadow-sm">
+          📘
+        </div>
+        <h1 class="text-lg font-bold text-slate-900 tracking-tight">全维语言 AI 评测平台</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 font-medium flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+          <span>DeepSeek-V3 引擎在线</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体横幅区 -->
+  <main class="flex-1 max-w-5xl mx-auto px-4 py-16 flex flex-col items-center justify-center text-center">
+    
+    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full mb-4">
+      面向中国乡村学校 · 留守儿童语言发展精准护航
+    </span>
+
+    <h2 class="text-3xl md:text-5xl font-extrabold text-blue-900 tracking-tight leading-tight max-w-3xl">
+      精准诊断，助力乡村基础教育
+    </h2>
+    <p class="text-base md:text-lg text-slate-600 mt-4 max-w-2xl leading-relaxed">
+      基于 DeepSeek 大语言模型与语音评测技术，客观量化乡村小学学生的“听、说、读、写”全维综合能力，精准识别发音与语言断层。
+    </p>
+
+    <!-- 学号登录卡片 -->
+    <div class="mt-10 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-md w-full max-w-md text-left">
+      <label class="block text-xs font-bold text-slate-700 uppercase mb-2">学生专属评测学号 / 姓名</label>
+      <input type="text" id="student-id" placeholder="例如：20260108 或 张小晨" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none mb-4 bg-slate-50">
+      
+      <label class="block text-xs font-bold text-slate-700 uppercase mb-2">选择年级学段</label>
+      <select id="student-grade" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none mb-6 bg-slate-50">
+        <option value="low">小学低段 (1 - 2 年级)</option>
+        <option value="mid" selected>小学中段 (3 - 4 年级)</option>
+        <option value="high">小学高段 (5 - 6 年级)</option>
+      </select>
+
+      <button type="button" onclick="startAssessment()" class="w-full py-3.5 bg-blue-800 hover:bg-blue-900 text-white font-bold rounded-xl shadow transition text-sm flex items-center justify-center space-x-2">
+        <span>进入系统测试</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <!-- 四大维度测定介绍 -->
+    <div class="mt-20 w-full text-left">
+      <h3 class="text-xl font-bold text-center text-slate-900 mb-8">四大维度的标准化测定</h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center">
+          <div class="w-12 h-12 mx-auto bg-blue-50 text-blue-700 rounded-full flex items-center justify-center text-xl mb-3">🎧</div>
+          <h4 class="font-bold text-slate-900 text-sm">听力理解</h4>
+          <p class="text-xs text-slate-500 mt-2 leading-normal">考察基础词汇听辨、语段细节捕捉与言外意理解</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center">
+          <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-700 rounded-full flex items-center justify-center text-xl mb-3">🎙️</div>
+          <h4 class="font-bold text-slate-900 text-sm">口语表达</h4>
+          <p class="text-xs text-slate-500 mt-2 leading-normal">分析平翘舌、前后鼻音、语流唱读与发音自信响度</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center">
+          <div class="w-12 h-12 mx-auto bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center text-xl mb-3">📖</div>
+          <h4 class="font-bold text-slate-900 text-sm">阅读理解</h4>
+          <p class="text-xs text-slate-500 mt-2 leading-normal">考查关键信息提取、逻辑推理与文学词汇储备</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center">
+          <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-700 rounded-full flex items-center justify-center text-xl mb-3">✍️</div>
+          <h4 class="font-bold text-slate-900 text-sm">核心写作</h4>
+          <p class="text-xs text-slate-500 mt-2 leading-normal">诊断书面词汇转换度、句式连贯性与真情实感表达</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-400 bg-white">
+    乡村基础教育全维语言发展测量与支持课题组 · DeepSeek 技术支持
+  </footer>
+
   <script>
-    var currentStep = 1;
-    var studentAnswers = { listening: {}, speaking_duration: 0, reading: {}, writing: "" };
-    var isSpkRecording = false;
-    var spkTimer = null;
-    var spkDuration = 0;
-    var listeningText = "老木匠在村口修补那张古老的纺车。阳光照在他粗糙的手上，刨刀翻飞间，散发出一阵阵清苦的槐木香。孩子们围拢过来，老木匠笑着说：这木头虽然开裂了，但只要榫卯还在，顺着它的纹理接上新料，就还能纺出细密的白布。";
-
-    // 1. 从首页进入测试：展示 DeepSeek 动态出题动画
     function startAssessment() {
-      var stuId = document.getElementById("input-student-id").value.trim() || "测试考生";
-      document.getElementById("nav-student-info").innerText = "考生: " + stuId + " | 学段: 中年级 (3-4年级)";
-      document.getElementById("res-student-title").innerText = "学号 / 姓名: " + stuId;
-
-      document.getElementById("view-home").style.display = "none";
-      document.getElementById("view-assessment").style.display = "block";
-      document.getElementById("loading-box").style.display = "block";
-      document.getElementById("test-container").style.display = "none";
-
-      // 模拟 DeepSeek 出题 2 秒后自动展开试卷
-      setTimeout(function() {
-        document.getElementById("loading-box").style.display = "none";
-        document.getElementById("test-container").style.display = "block";
-        showModule(1, "模块一：听力理解", "下一题：口语表达 →");
-      }, 2000);
-    }
-
-    // 2. 步骤切换（听力 -> 口语 -> 阅读 -> 写作）
-    function showModule(step, titleText, nextBtnText) {
-      currentStep = step;
-      document.getElementById("step-indicator").innerText = titleText;
-      document.getElementById("btn-next").innerText = nextBtnText;
-      document.getElementById("btn-prev").style.display = (step === 1) ? "none" : "inline-block";
-
-      document.getElementById("module-listening").style.display = (step === 1) ? "block" : "none";
-      document.getElementById("module-speaking").style.display = (step === 2) ? "block" : "none";
-      document.getElementById("module-reading").style.display = (step === 3) ? "block" : "none";
-      document.getElementById("module-writing").style.display = (step === 4) ? "block" : "none";
-      window.scrollTo(0, 0);
-    }
-
-    function nextStep() {
-      if (currentStep === 1) showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
-      else if (currentStep === 2) showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
-      else if (currentStep === 3) showModule(4, "模块四：核心写作", "提交并由 AI 批阅 🚀");
-      else if (currentStep === 4) submitAllAnswers();
-    }
-
-    function prevStep() {
-      if (currentStep === 2) showModule(1, "模块一：听力理解", "下一题：口语表达 →");
-      else if (currentStep === 3) showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
-      else if (currentStep === 4) showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
-    }
-
-    // 3. 语音播报
-    function playListeningAudio() {
-      if (!window.speechSynthesis) {
-        alert("浏览器正在调用内置音频...");
-        return;
-      }
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(listeningText);
-      u.lang = "zh-CN";
-      u.rate = 0.9;
-      document.getElementById("play-text").innerText = "正在播报中...";
-      u.onend = function() {
-        document.getElementById("play-text").innerText = "播报完毕 (可点击重听)";
-      };
-      window.speechSynthesis.speak(u);
-    }
-
-    // 4. 口语录音
-    function toggleSpeakingRecord() {
-      var btn = document.getElementById("btn-spk-record");
-      if (!isSpkRecording) {
-        isSpkRecording = true;
-        spkDuration = 0;
-        btn.style.backgroundColor = "#059669";
-        spkTimer = setInterval(function() {
-          spkDuration++;
-          document.getElementById("spk-status").innerText = "🎙️ 正在录音：" + spkDuration + " 秒 (读完再次点击停止)";
-        }, 1000);
-      } else {
-        isSpkRecording = false;
-        clearInterval(spkTimer);
-        studentAnswers.speaking_duration = spkDuration;
-        btn.style.backgroundColor = "#f43f5e";
-        document.getElementById("spk-status").innerText = "录音完成 (用时 " + spkDuration + " 秒)，请点击下一题";
-      }
-    }
-
-    function updateWordCount() {
-      var val = document.getElementById("write-input").value;
-      studentAnswers.writing = val;
-      document.getElementById("write-count").innerText = val.length;
-    }
-
-    // 5. 提交试卷并呈现雷达图报告
-    function submitAllAnswers() {
-      document.getElementById("test-container").style.display = "none";
-      document.getElementById("evaluating-box").style.display = "block";
-
-      setTimeout(function() {
-        document.getElementById("view-assessment").style.display = "none";
-        document.getElementById("view-result").style.display = "block";
-        renderRadarChart();
-      }, 2000);
-    }
-
-    function renderRadarChart() {
-      var ctx = document.getElementById("radarChart").getContext("2d");
-      new Chart(ctx, {
-        type: "radar",
-        data: {
-          labels: ["听力理解", "口语表达", "阅读理解", "核心写作"],
-          datasets: [{
-            label: "能力分值",
-            data: [88, 65, 92, 70],
-            backgroundColor: "rgba(30, 64, 175, 0.2)",
-            borderColor: "rgba(30, 64, 175, 1)",
-            borderWidth: 2,
-            pointBackgroundColor: "rgba(30, 64, 175, 1)",
-            pointRadius: 4
-          }]
-        },
-        options: {
-          scales: {
-            r: { min: 0, max: 100, ticks: { stepSize: 20 }, pointLabels: { font: { size: 12, weight: "bold" } } }
-          },
-          plugins: { legend: { display: false } }
-        }
-      });
-    }
-
-    function restartTest() {
-      document.getElementById("view-result").style.display = "none";
-      document.getElementById("view-home").style.display = "block";
-      currentStep = 1;
-      window.scrollTo(0, 0);
+      const studentId = document.getElementById("student-id").value.trim() || "体验考生";
+      const grade = document.getElementById("student-grade").value;
+      localStorage.setItem("current_student_id", studentId);
+      localStorage.setItem("current_student_grade", grade);
+      window.location.href = "assessment.html";
     }
   </script>
-</head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
-
-  <!-- 1. 首页视图 (Home View) -->
-  <div id="view-home">
-    <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-lg bg-blue-700 flex items-center justify-center text-white font-extrabold text-lg">📘</div>
-        <h1 class="text-lg font-bold text-slate-900">全维语言 AI 评测平台</h1>
-      </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 py-16 text-center">
-      <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-        面向中国乡村学校 · 留守儿童语言发展精准护航
-      </span>
-      <h2 class="text-3xl md:text-5xl font-extrabold text-blue-900 mt-4 tracking-tight">
-        精准诊断，助力乡村基础教育
-      </h2>
-      <p class="text-base text-slate-600 mt-4 max-w-xl mx-auto leading-relaxed">
-        基于前沿大语言模型与语音识别技术，客观量化学生的“听、说、读、写”全维综合能力。
-      </p>
-
-      <div class="mt-10 bg-white p-8 rounded-2xl border border-slate-200 shadow-md max-w-md mx-auto text-left">
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-2">学生专属评测账号 / 学号</label>
-        <input type="text" id="input-student-id" placeholder="例如：20260108 或 张小晨" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none mb-6 bg-slate-50">
-        
-        <button type="button" onclick="startAssessment()" class="w-full py-3.5 bg-blue-800 hover:bg-blue-900 text-white font-bold rounded-xl shadow transition text-sm">
-          进入系统测试 →
-        </button>
-      </div>
-    </main>
-  </div>
-
-  <!-- 2. 测评进行中视图 (Assessment View) -->
-  <div id="view-assessment" style="display:none;">
-    <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
-      <div class="flex items-center space-x-2">
-        <span class="text-blue-800 font-extrabold text-base">📘 全维语言 AI 测评</span>
-        <span class="text-slate-300">|</span>
-        <span id="nav-student-info" class="text-xs text-slate-500 font-medium">考生: 体验考生</span>
-      </div>
-      <span id="step-indicator" class="font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-xs">模块一：听力理解</span>
-    </header>
-
-    <main class="max-w-3xl mx-auto px-4 py-8 flex-1 w-full">
-      <div class="text-center mb-6">
-        <h2 class="text-2xl font-black text-blue-900 tracking-tight">综合测评进行中</h2>
-        <p class="text-xs text-slate-500 mt-1">请保持环境安静，按照提示认真作答</p>
-      </div>
-
-      <!-- 出题中动画浮层 -->
-      <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-        <h3 class="text-base font-bold text-slate-800">DeepSeek 正在根据课标动态生成高品质试卷...</h3>
-        <p class="text-xs text-slate-400 mt-2">包含文学性语段、音韵考察重点与思维逻辑题目</p>
-      </div>
-
-      <!-- 批阅中动画浮层 -->
-      <div id="evaluating-box" style="display:none;" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-        <h3 class="text-base font-bold text-slate-800">DeepSeek 正在全面批阅听、说、读、写作答...</h3>
-        <p class="text-xs text-slate-400 mt-2">正在测算语言能力断层，生成标准化四维图谱报告</p>
-      </div>
-
-      <!-- 答题容器 -->
-      <div id="test-container" style="display:none;" class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-
-        <!-- 模块 1: 听力理解 -->
-        <section id="module-listening" class="space-y-6">
-          <div class="border-b border-slate-100 pb-3">
-            <span class="text-xs font-bold text-blue-600 uppercase">模块一：听力理解</span>
-            <h3 class="text-base font-bold text-slate-900 mt-1">点击播放听力材料，回答下方问题</h3>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <button type="button" onclick="playListeningAudio()" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
-                <span>🔊</span>
-                <span id="play-text">播报完整听力材料</span>
-              </button>
-              <span class="text-xs text-slate-500">（标准普通话 AI 语音合成）</span>
-            </div>
-            <span class="text-xs text-slate-400">建议听 1-2 遍</span>
-          </div>
-
-          <div id="listening-questions" class="space-y-4 pt-2">
-            <div class="border border-slate-200 rounded-xl p-4 bg-white">
-              <div class="font-bold text-xs text-slate-800 mb-3">1. 老木匠说“只要榫卯还在就能纺出细密的白布”，深层意图是指？</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q1" value="A"><span>A. 槐木的味道非常香</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q1" value="B"><span>B. 只要根基信念在，挫折就能被弥合</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q1" value="C"><span>C. 夸耀自己的木工手艺</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q1" value="D"><span>D. 纺车是村里最贵的器具</span></label>
-              </div>
-            </div>
-            <div class="border border-slate-200 rounded-xl p-4 bg-white">
-              <div class="font-bold text-xs text-slate-800 mb-3">2. 关于老木匠修纺车的场景描写，下列哪项符合原文？</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q2" value="A"><span>A. 老木匠因木头开裂非常烦躁</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q2" value="B"><span>B. 孩子们被刨刀声吓跑了</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q2" value="C"><span>C. 刨刀飞舞时散发着清苦的槐木香</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="l_q2" value="D"><span>D. 老木匠用了铁钉固定裂缝</span></label>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 模块 2: 口语表达 -->
-        <section id="module-speaking" style="display:none;" class="space-y-6">
-          <div class="border-b border-slate-100 pb-3">
-            <span class="text-xs font-bold text-blue-600 uppercase">模块二：口语表达</span>
-            <h3 class="text-base font-bold text-slate-900 mt-1">请大声、饱满、自然地朗读以下段落</h3>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl">
-            <h4 id="spk-title" class="font-bold text-slate-900 text-base mb-3 text-center">《穿行在青石板上的晨光》</h4>
-            <p id="spk-passage" class="text-xl md:text-2xl text-slate-800 leading-relaxed tracking-wide select-none">清晨的薄雾像一层素雅的轻纱，静静笼罩着沉睡的群山。金色的晨曦穿透茂密的樟树枝叶，斑斑驳驳地洒落在湿润的石板路上。溪水潺潺流过石桥，欢快的鸟雀在枝桠间清脆地啼鸣。背着书包的孩子们结伴走在田埂上，清脆的读书声在清冽的空气中久久回荡。</p>
-          </div>
-
-          <div class="flex flex-col items-center justify-center pt-2 space-y-3">
-            <button type="button" id="btn-spk-record" onclick="toggleSpeakingRecord()" class="w-16 h-16 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg">
-              <span class="text-2xl">🎙️</span>
-            </button>
-            <span id="spk-status" class="text-xs font-semibold text-slate-600">点击麦克风开始朗读录音</span>
-          </div>
-        </section>
-
-        <!-- 模块 3: 阅读理解 -->
-        <section id="module-reading" style="display:none;" class="space-y-6">
-          <div class="border-b border-slate-100 pb-3">
-            <span class="text-xs font-bold text-blue-600 uppercase">模块三：阅读理解</span>
-            <h3 class="text-base font-bold text-slate-900 mt-1">请仔细阅读短文，完成深度理解题</h3>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl">
-            <h4 id="read-title" class="font-bold text-slate-900 text-base mb-3 text-center">《老水井的沉思》</h4>
-            <p id="read-passage" class="text-base text-slate-800 leading-relaxed tracking-normal select-none">村头的那口老水井已有百岁高龄。井壁爬满了厚厚的青苔，宛如一件墨绿色的织锦。不管是大旱之年还是连绵梅雨，井里的清泉始终不急不缓地保持着原有的水位，明亮如镜，倒映着天上的云朵与岁月的沧桑。村里一代代的孩子在这里汲水成长，走向外面的广阔世界，而老水井始终在原地静静守护。</p>
-          </div>
-
-          <div id="reading-questions" class="space-y-4 pt-2">
-            <div class="border border-slate-200 rounded-xl p-4 bg-white">
-              <div class="font-bold text-xs text-slate-800 mb-3">1. 文中写老水井“始终不急不缓保持原有水位”，突出了水井怎样的品格？</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q1" value="A"><span>A. 历经沧桑依然从容淡定、恒久守候</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q1" value="B"><span>B. 水量太少无法灌溉农田</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q1" value="C"><span>C. 水井无人问津的失落</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q1" value="D"><span>D. 井水温度常年不变</span></label>
-              </div>
-            </div>
-            <div class="border border-slate-200 rounded-xl p-4 bg-white">
-              <div class="font-bold text-xs text-slate-800 mb-3">2. 第二句将“厚厚的青苔”比作“墨绿色的织锦”，主要作用是：</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q2" value="A"><span>A. 批评老水井没人清理打扫</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q2" value="B"><span>B. 增添画面的诗意与悠久历史的厚重感</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q2" value="C"><span>C. 提醒大家井壁湿滑不要靠近</span></label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"><input type="radio" name="r_q2" value="D"><span>D. 说明井水里水草过多不能饮用</span></label>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 模块 4: 核心写作 -->
-        <section id="module-writing" style="display:none;" class="space-y-6">
-          <div class="border-b border-slate-100 pb-3">
-            <span class="text-xs font-bold text-blue-600 uppercase">模块四：核心写作</span>
-            <h3 class="text-base font-bold text-slate-900 mt-1" id="write-topic">情境写作：《村头那处我常停留的角落》</h3>
-          </div>
-
-          <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-900 leading-relaxed">
-            在你的家乡或校园里，一定有某一个角落（如老树下、田埂边、院落旁），曾陪伴你度过等待与成长的时光。请抓住一两个细节写一段话（80-120字），表达真情实感。
-          </div>
-
-          <div>
-            <textarea id="write-input" rows="6" oninput="updateWordCount()" placeholder="在这里输入你的作文内容..." class="w-full p-4 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-slate-50"></textarea>
-            <div class="text-right text-xs text-slate-400 mt-1">已输入 <span id="write-count" class="font-bold text-slate-700">0</span> 字</div>
-          </div>
-        </section>
-
-        <!-- 底部步骤切换按钮 -->
-        <div class="flex justify-between items-center pt-6 border-t border-slate-100">
-          <button type="button" id="btn-prev" onclick="prevStep()" style="display:none;" class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50">
-            ← 上一步
-          </button>
-          <div class="flex-1"></div>
-          <button type="button" id="btn-next" onclick="nextStep()" class="px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl text-xs font-bold shadow transition">
-            下一题：口语表达 →
-          </button>
-        </div>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- 3. 诊断报告视图 (Result View) -->
-  <div id="view-result" style="display:none;">
-    <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
-      <div class="flex items-center space-x-2">
-        <span class="text-blue-900 font-extrabold text-base">📘 全维语言 AI 诊断书</span>
-        <span class="text-slate-300">|</span>
-        <span id="res-student-title" class="text-xs text-slate-500 font-medium">学号: 测试考生</span>
-      </div>
-      <button onclick="window.print()" class="text-xs px-4 py-2 bg-slate-900 text-white font-bold rounded-lg shadow-sm">
-        🖨️ 导出 / 打印 PDF 报告
-      </button>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 py-10 space-y-8">
-      <div class="text-center">
-        <h2 class="text-2xl md:text-3xl font-black text-blue-950 tracking-tight">留守儿童语言能力多维图谱与诊断</h2>
-        <p class="text-xs text-slate-500 mt-1">评测模型：DeepSeek-V3 语言发展多维量表</p>
-      </div>
-
-      <!-- 雷达图与四维小分卡 -->
-      <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-        <div class="w-full h-64 flex items-center justify-center">
-          <canvas id="radarChart"></canvas>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-            <span class="text-xs text-slate-500 block mb-1">🎧 听力理解</span>
-            <span class="text-3xl font-black text-blue-900">88</span>
-          </div>
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-            <span class="text-xs text-slate-500 block mb-1">🎙️ 口语表达</span>
-            <span class="text-3xl font-black text-blue-900">65</span>
-          </div>
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-            <span class="text-xs text-slate-500 block mb-1">📖 阅读理解</span>
-            <span class="text-3xl font-black text-blue-900">92</span>
-          </div>
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-            <span class="text-xs text-slate-500 block mb-1">✍️ 核心写作</span>
-            <span class="text-3xl font-black text-blue-900">70</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 深度诊断与断层分析 -->
-      <div class="bg-blue-900 text-white rounded-2xl p-6 md:p-8 space-y-3">
-        <h3 class="text-sm font-bold text-blue-200 uppercase tracking-wider">🤖 AI 专家深度发展断层诊断</h3>
-        <p class="text-sm text-blue-50 leading-relaxed">
-          该学生的输入型能力（听力 88 分、阅读 92 分）表现优异，但输出型能力（口语 65 分、写作 70 分）存在显著断层，呈现出伴读缺失环境中“能听懂读懂，但羞于开口、难于成文”的典型留守特征。
-        </p>
-      </div>
-
-      <!-- 标准化打分细则表 (Rubric) -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h3 class="text-base font-bold text-slate-900">📋 标准化全维打分表 (Scoring Rubric Table)</h3>
-        <div class="overflow-x-auto border border-slate-200 rounded-xl">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase">
-              <tr>
-                <th class="px-4 py-3">考核模块</th>
-                <th class="px-4 py-3">满分</th>
-                <th class="px-4 py-3">得分</th>
-                <th class="px-4 py-3">课标达标基准</th>
-                <th class="px-4 py-3">失分分析与扣分说明</th>
-                <th class="px-4 py-3">评价等级</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr>
-                <td class="px-4 py-3 font-bold text-slate-900">听力理解</td>
-                <td class="px-4 py-3 text-slate-500">100</td>
-                <td class="px-4 py-3 font-extrabold text-blue-700">88</td>
-                <td class="px-4 py-3 text-slate-600">准确抓取细节与隐喻推断</td>
-                <td class="px-4 py-3 text-rose-600">关键情节提取精准，推断题稍显迟疑</td>
-                <td class="px-4 py-3 font-semibold text-emerald-700">优秀</td>
-              </tr>
-              <tr>
-                <td class="px-4 py-3 font-bold text-slate-900">口语表达</td>
-                <td class="px-4 py-3 text-slate-500">100</td>
-                <td class="px-4 py-3 font-extrabold text-blue-700">65</td>
-                <td class="px-4 py-3 text-slate-600">普通话声韵调规范自然</td>
-                <td class="px-4 py-3 text-rose-600">平翘舌界限稍模糊；后半程音量渐弱</td>
-                <td class="px-4 py-3 font-semibold text-amber-700">需强化</td>
-              </tr>
-              <tr>
-                <td class="px-4 py-3 font-bold text-slate-900">阅读理解</td>
-                <td class="px-4 py-3 text-slate-500">100</td>
-                <td class="px-4 py-3 font-extrabold text-blue-700">92</td>
-                <td class="px-4 py-3 text-slate-600">快速把握主旨与修辞深意</td>
-                <td class="px-4 py-3 text-rose-600">叙述脉络与细节对应清晰，识字基础扎实</td>
-                <td class="px-4 py-3 font-semibold text-emerald-700">优秀</td>
-              </tr>
-              <tr>
-                <td class="px-4 py-3 font-bold text-slate-900">核心写作</td>
-                <td class="px-4 py-3 text-slate-500">100</td>
-                <td class="px-4 py-3 font-extrabold text-blue-700">70</td>
-                <td class="px-4 py-3 text-slate-600">书面用词丰富，情感真挚连贯</td>
-                <td class="px-4 py-3 text-rose-600">情感真挚质朴，但多使用口语化短句，书面词储备较少</td>
-                <td class="px-4 py-3 font-semibold text-blue-700">中等</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="text-center pt-4">
-        <button type="button" onclick="restartTest()" class="text-sm text-blue-700 hover:underline font-bold">
-          ← 返回首页，开始新的评测
-        </button>
-      </div>
-    </main>
-  </div>
-
 </body>
 </html>
