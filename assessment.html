@@ -25,14 +25,14 @@
       <p class="text-xs text-slate-500 mt-1">请保持环境安静，按照提示认真作答</p>
     </div>
 
-    <!-- 1. DeepSeek 真实出题等待界面（带秒数计时） -->
+    <!-- 真实 DeepSeek 出题进度动画 -->
     <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-      <h3 class="text-base font-bold text-slate-800" id="loading-title">DeepSeek 正在根据年级原创命制试卷...</h3>
-      <p class="text-xs text-slate-500 mt-2" id="loading-timer">已耗时 1 秒 · 正在生成听力、口语、阅读与写作题目</p>
+      <h3 class="text-base font-bold text-slate-800" id="loading-title">DeepSeek 正在根据所选年级原创命制试卷...</h3>
+      <p class="text-xs text-slate-500 mt-2" id="loading-timer">已耗时 1 秒 · DeepSeek-V3 正在生成听力、口语、阅读与写作</p>
     </div>
 
-    <!-- 2. 真实考卷答题主容器（AI 生成完毕后自动展现） -->
+    <!-- 考卷主容器 -->
     <div id="test-container" class="hidden bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
 
       <!-- 模块 1: 听力理解 -->
@@ -53,7 +53,6 @@
           <span class="text-xs text-slate-400">建议听 1-2 遍</span>
         </div>
 
-        <!-- 由 DeepSeek 动态生成的听力题目插槽 -->
         <div id="listening-questions" class="space-y-4 pt-2"></div>
       </section>
 
@@ -89,7 +88,6 @@
           <p id="read-passage" class="text-base text-slate-800 leading-relaxed tracking-normal select-none"></p>
         </div>
 
-        <!-- 由 DeepSeek 动态生成的阅读题目插槽 -->
         <div id="reading-questions" class="space-y-4 pt-2"></div>
       </section>
 
@@ -131,90 +129,80 @@
     var spkDuration = 0;
     var listeningPassageText = "";
 
-    // 页面启动：真实请求 DeepSeek 出题
     window.onload = function() {
-      var studentId = localStorage.getItem("current_student_id") || "测试学生";
+      var studentId = localStorage.getItem("current_student_id") || "体验考生";
       var grade = localStorage.getItem("current_student_grade") || "mid";
       var gradeNames = { "low": "低年级 (1-2年级)", "mid": "中年级 (3-4年级)", "high": "高年级 (5-6年级)" };
-      
       document.getElementById("nav-student-info").innerText = "考生: " + studentId + " | 学段: " + (gradeNames[grade] || grade);
 
-      // 秒数计时器
-      var secondsElapsed = 1;
-      var timerInterval = setInterval(function() {
-        secondsElapsed++;
+      var elapsed = 1;
+      var timer = setInterval(function() {
+        elapsed++;
         var el = document.getElementById("loading-timer");
-        if (el) el.innerText = "已耗时 " + secondsElapsed + " 秒 · DeepSeek-V3 正在深度构思四模块考题 (约 8-15 秒)";
+        if (el) el.innerText = "已耗时 " + elapsed + " 秒 · DeepSeek-V3 正在构思四模块原创考题 (约 8-15 秒)";
       }, 1000);
 
-      // 请求后端调用 DeepSeek 生成试卷
+      // 向后端发起真实的 DeepSeek 命题请求
       fetch("/api/generate_all_modules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ grade: grade, student_id: studentId })
       })
       .then(function(res) {
-        if (!res.ok) throw new Error("HTTP 状态 " + res.status);
-        return res.json();
+        return res.json().then(function(data) {
+          if (!res.ok) throw new Error(data.detail || "出题失败");
+          return data;
+        });
       })
       .then(function(json) {
-        clearInterval(timerInterval);
+        clearInterval(timer);
         if (json.status === "success" && json.data) {
           currentExamData = json.data;
           renderAIGeneratedExam(currentExamData);
-        } else {
-          alert("出题异常: " + (json.detail || "请刷新"));
         }
       })
       .catch(function(err) {
-        clearInterval(timerInterval);
-        alert("DeepSeek 出题遇到异常: " + err.message + "，请点击确定后重试！");
-        window.location.reload();
+        clearInterval(timer);
+        alert("【DeepSeek 出题受阻】：\n" + err.message);
       });
     };
 
-    // 将 DeepSeek 真实生成的各模块题目填入页面
     function renderAIGeneratedExam(d) {
       document.getElementById("loading-box").classList.add("hidden");
       document.getElementById("test-container").classList.remove("hidden");
 
-      // 1. 听力
       if (d.listening) {
         listeningPassageText = d.listening.passage || "";
-        var lqContainer = document.getElementById("listening-questions");
-        lqContainer.innerHTML = "";
+        var lq = document.getElementById("listening-questions");
+        lq.innerHTML = "";
         (d.listening.questions || []).forEach(function(q, idx) {
-          lqContainer.appendChild(createQuestionCard("listening", q, idx));
+          lq.appendChild(createQuestionCard("listening", q, idx));
         });
       }
 
-      // 2. 口语
       if (d.speaking) {
         document.getElementById("spk-title").innerText = d.speaking.title || "口语朗读篇目";
         document.getElementById("spk-passage").innerText = d.speaking.passage || "";
       }
 
-      // 3. 阅读
       if (d.reading) {
         document.getElementById("read-title").innerText = d.reading.title || "阅读短文";
         document.getElementById("read-passage").innerText = d.reading.passage || "";
-        var rqContainer = document.getElementById("reading-questions");
-        rqContainer.innerHTML = "";
+        var rq = document.getElementById("reading-questions");
+        rq.innerHTML = "";
         (d.reading.questions || []).forEach(function(q, idx) {
-          rqContainer.appendChild(createQuestionCard("reading", q, idx));
+          rq.appendChild(createQuestionCard("reading", q, idx));
         });
       }
 
-      // 4. 写作
       if (d.writing) {
         document.getElementById("write-topic").innerText = "模块四：写作 · " + (d.writing.topic || "命题写作");
-        document.getElementById("write-prompt").innerText = d.writing.prompt || "请结合真情实感作答。";
+        document.getElementById("write-prompt").innerText = d.writing.prompt || "请认真作答。";
       }
 
       showModule(1, "模块一：听力理解", "下一题：口语表达 →");
     }
 
-    // 动态生成选择题卡片
     function createQuestionCard(type, q, idx) {
       var card = document.createElement("div");
       card.className = "border border-slate-200 rounded-xl p-4 bg-white mb-3";
@@ -223,9 +211,9 @@
       var html = '<div class="font-bold text-xs text-slate-800 mb-3">' + (idx + 1) + '. ' + q.question + '</div>';
       html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">';
       options.forEach(function(opt) {
-        var optLetter = opt.charAt(0);
+        var letter = opt.charAt(0);
         html += '<label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">';
-        html += '<input type="radio" name="' + type + '_q_' + q.id + '" value="' + optLetter + '" onchange="recordChoice(\'' + type + '\', ' + q.id + ', \'' + optLetter + '\')">';
+        html += '<input type="radio" name="' + type + '_q_' + q.id + '" value="' + letter + '" onchange="recordChoice(\'' + type + '\', ' + q.id + ', \'' + letter + '\')">';
         html += '<span class="text-slate-700">' + opt + '</span></label>';
       });
       html += '</div>';
@@ -278,7 +266,6 @@
       document.getElementById("write-count").innerText = val.length;
     }
 
-    // 步骤切换
     function showModule(step, titleText, nextBtnText) {
       currentStep = step;
       document.getElementById("step-indicator").innerText = titleText;
@@ -305,13 +292,13 @@
       else if (currentStep === 4) showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
     }
 
-    // 真实向 DeepSeek 提交整套作答数据并获取打分
+    // 提交答卷给 DeepSeek 深度阅卷打分
     function submitAllAnswers() {
       document.getElementById("test-container").classList.add("hidden");
       var loadBox = document.getElementById("loading-box");
       loadBox.classList.remove("hidden");
       document.getElementById("loading-title").innerText = "DeepSeek 正在深度批阅听、说、读、写作答...";
-      document.getElementById("loading-timer").innerText = "正在逐题评分、精批作文、测算能力断层图谱 (约 8-12 秒)...";
+      document.getElementById("loading-timer").innerText = "正在客观核对答案、精批作文内容、生成能力断层图谱 (约 8-15 秒)...";
 
       var studentId = localStorage.getItem("current_student_id") || "测试学生";
       var grade = localStorage.getItem("current_student_grade") || "mid";
@@ -327,19 +314,21 @@
         })
       })
       .then(function(res) {
-        if (!res.ok) throw new Error("批阅服务响应失败");
-        return res.json();
+        return res.json().then(function(data) {
+          if (!res.ok) throw new Error(data.detail || "批阅失败");
+          return data;
+        });
       })
       .then(function(json) {
         if (json.status === "success" && json.data) {
           localStorage.setItem("assessment_result", JSON.stringify(json.data));
           window.location.href = "result.html";
-        } else {
-          alert("批阅异常: " + (json.detail || "请重试"));
         }
       })
       .catch(function(err) {
-        alert("DeepSeek 批阅遇到问题: " + err.message);
+        alert("【DeepSeek 批阅失败】：\n" + err.message);
+        document.getElementById("loading-box").classList.add("hidden");
+        document.getElementById("test-container").classList.remove("hidden");
       });
     }
   </script>
