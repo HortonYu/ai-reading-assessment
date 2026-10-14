@@ -5,17 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>综合测评进行中 - 全维语言能力测定</title>
   <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-    // 强制自动补齐 www，彻底防止浏览器安全拦截 POST 请求
-    if (window.location.hostname === 'reading-assessment-tool.work') {
-      window.location.replace('https://www.reading-assessment-tool.work' + window.location.pathname);
-    }
-  </script>
-
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- 顶部状态栏 -->
   <header class="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50">
     <div class="flex items-center space-x-2">
       <span class="text-blue-800 font-extrabold text-base">📘 全维语言 AI 测评</span>
@@ -27,21 +19,18 @@
     </div>
   </header>
 
-  <!-- 主体答题卡片 -->
   <main class="max-w-3xl mx-auto px-4 py-10 flex-1 w-full">
     <div class="text-center mb-6">
       <h2 class="text-2xl font-black text-blue-900 tracking-tight">综合测评进行中</h2>
       <p class="text-xs text-slate-500 mt-1">请保持环境安静，按照提示认真作答</p>
     </div>
 
-    <!-- 题目加载遮罩 -->
     <div id="loading-box" class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
       <h3 class="text-base font-bold text-slate-800">DeepSeek 正在根据课标动态生成高品质试卷...</h3>
       <p class="text-xs text-slate-400 mt-2">包含文学性语段、音韵考察重点与思维逻辑题目</p>
     </div>
 
-    <!-- 答题容器 -->
     <div id="test-container" class="hidden bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
 
       <!-- 模块 1: 听力理解 -->
@@ -115,7 +104,6 @@
         </div>
       </section>
 
-      <!-- 导航按钮条 -->
       <div class="flex justify-between items-center pt-6 border-t border-slate-100">
         <button id="btn-prev" onclick="prevStep()" class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50 hidden">
           上一步
@@ -132,40 +120,40 @@
   <script>
     let currentStep = 1;
     let testData = null;
-    let studentAnswers = {
-      listening: {},
-      speaking_duration: 0,
-      reading: {},
-      writing: ""
-    };
+    let studentAnswers = { listening: {}, speaking_duration: 0, reading: {}, writing: "" };
 
     document.addEventListener("DOMContentLoaded", async () => {
       const studentId = localStorage.getItem("current_student_id") || "学生";
       const grade = localStorage.getItem("current_student_grade") || "mid";
       document.getElementById("nav-student-info").innerText = `考生: ${studentId} | 学段: ${grade.toUpperCase()}`;
-
       await fetchExamData(grade, studentId);
     });
 
     async function fetchExamData(grade, studentId) {
+      let json = null;
       try {
         const apiKey = localStorage.getItem("deepseek_api_key") || "";
-        // 关键修复：直接请求云端同源接口，不再请求本地 127.0.0.1
         const res = await fetch("/api/generate_all_modules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ grade: grade, student_id: studentId, api_key: apiKey })
         });
-        const json = await res.json();
-        if (json.status === "success") {
+        json = await res.json();
+      } catch (netErr) {
+        alert("网络通信异常，请确认网络畅通！");
+        return;
+      }
+
+      if (json && json.status === "success") {
+        try {
           testData = json.data;
           renderExam(testData);
-        } else {
-          alert("生成试题异常: " + (json.detail || "请检查网络"));
+        } catch (renderErr) {
+          console.error("渲染异常:", renderErr);
+          alert("试题解析异常: " + renderErr.message);
         }
-      } catch (e) {
-        alert("网络通信异常，请刷新重试！");
-        console.error(e);
+      } else {
+        alert("出题异常: " + (json ? json.detail : "未知"));
       }
     }
 
@@ -176,37 +164,40 @@
       // 1. 听力渲染
       const lq = document.getElementById("listening-questions");
       lq.innerHTML = "";
-      d.listening.questions.forEach((q, idx) => {
+      const lQuestions = d.listening?.questions || [];
+      lQuestions.forEach((q, idx) => {
         lq.appendChild(createQuestionCard("listening", q, idx));
       });
 
       // 2. 口语渲染
-      document.getElementById("spk-title").innerText = d.speaking.title;
-      document.getElementById("spk-passage").innerText = d.speaking.passage;
+      document.getElementById("spk-title").innerText = d.speaking?.title || "口语表达";
+      document.getElementById("spk-passage").innerText = d.speaking?.passage || "";
 
       // 3. 阅读渲染
-      document.getElementById("read-title").innerText = d.reading.title;
-      document.getElementById("read-passage").innerText = d.reading.passage;
+      document.getElementById("read-title").innerText = d.reading?.title || "阅读理解";
+      document.getElementById("read-passage").innerText = d.reading?.passage || "";
       const rq = document.getElementById("reading-questions");
       rq.innerHTML = "";
-      d.reading.questions.forEach((q, idx) => {
+      const rQuestions = d.reading?.questions || [];
+      rQuestions.forEach((q, idx) => {
         rq.appendChild(createQuestionCard("reading", q, idx));
       });
 
       // 4. 写作渲染
-      document.getElementById("write-topic").innerText = `模块四：写作 · ${d.writing.topic}`;
-      document.getElementById("write-prompt").innerText = d.writing.prompt;
+      document.getElementById("write-topic").innerText = `模块四：写作 · ${d.writing?.topic || "命题写作"}`;
+      document.getElementById("write-prompt").innerText = d.writing?.prompt || "";
     }
 
     function createQuestionCard(type, q, idx) {
       const card = document.createElement("div");
       card.className = "border border-slate-200 rounded-xl p-4 bg-white";
+      const opts = Array.isArray(q.options) ? q.options : ["A. 选项一", "B. 选项二", "C. 选项三", "D. 选项四"];
       card.innerHTML = `
-        <div class="font-bold text-xs text-slate-800 mb-3">${idx + 1}. ${q.question}</div>
+        <div class="font-bold text-xs text-slate-800 mb-3">${idx + 1}. ${q.question || "请回答"}</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-          ${q.options.map(opt => `
+          ${opts.map(opt => `
             <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-              <input type="radio" name="${type}_q_${q.id}" value="${opt[0]}" onchange="recordChoice('${type}', ${q.id}, '${opt[0]}')">
+              <input type="radio" name="${type}_q_${q.id || idx}" value="${opt[0]}" onchange="recordChoice('${type}', ${q.id \vert{}\vert{} idx}, '${opt[0]}')">
               <span class="text-slate-700">${opt}</span>
             </label>
           `).join("")}
@@ -239,15 +230,10 @@
     }
 
     function nextStep() {
-      if (currentStep === 1) {
-        showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
-      } else if (currentStep === 2) {
-        showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
-      } else if (currentStep === 3) {
-        showModule(4, "模块四：核心写作", "提交并由 AI 批阅 🚀");
-      } else if (currentStep === 4) {
-        submitAllAnswers();
-      }
+      if (currentStep === 1) showModule(2, "模块二：口语表达", "下一题：阅读理解 →");
+      else if (currentStep === 2) showModule(3, "模块三：阅读理解", "下一题：核心写作 →");
+      else if (currentStep === 3) showModule(4, "模块四：核心写作", "提交并由 AI 批阅 🚀");
+      else if (currentStep === 4) submitAllAnswers();
     }
 
     function prevStep() {
@@ -307,17 +293,10 @@
         const grade = localStorage.getItem("current_student_grade") || "mid";
         const apiKey = localStorage.getItem("deepseek_api_key") || "";
 
-        // 关键修复：直接向云端提交批阅请求
         const res = await fetch("/api/evaluate_submission", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            student_id: studentId,
-            grade: grade,
-            test_data: testData,
-            student_answers: studentAnswers,
-            api_key: apiKey
-          })
+          body: JSON.stringify({ student_id: studentId, grade: grade, test_data: testData, student_answers: studentAnswers, api_key: apiKey })
         });
         const json = await res.json();
         if (json.status === "success") {
