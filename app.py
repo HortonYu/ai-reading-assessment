@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-全维语言能力 AI 评测平台 - 后端服务 (8秒极速响应与防卡顿优化)
+全维语言能力 AI 评测平台 - 后端核心
+100% 真实调用 DeepSeek 动态出题与深度批阅打分
 """
 import os
 import time
 import json
 import random
 import requests
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
@@ -15,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="乡村教育语言综合评测引擎", version="3.5.0")
+app = FastAPI(title="乡村教育全维语言评测引擎", version="4.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,6 +30,7 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
+# 寻找前端目录
 def find_frontend_dir():
     candidates = [
         os.path.join(os.getcwd(), "frontend"),
@@ -64,87 +66,33 @@ def serve_pages(page_name: str):
                 return FileResponse(html_target)
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-# 多套精选考卷池（秒级直出，杜绝加载卡顿）
-MULTI_EXAMS = {
-    "mid": [
-        {
-            "listening": {
-                "passage": "老木匠在村口修补那张古老的纺车。阳光照在他粗糙的手上，刨刀翻飞间，散发出一阵阵清苦的槐木香。孩子们围拢过来，老木匠笑着说：‘这木头虽然开裂了，但只要榫卯还在，顺着它的纹理接上新料，就还能纺出细密的白布。’",
-                "questions": [
-                    {"id": 1, "question": "老木匠说‘只要榫卯还在就能纺出细密的白布’，深层意图是指？", "options": ["A. 槐木的味道非常香", "B. 只要根基信念在，挫折就能被弥合", "C. 夸耀自己的手艺", "D. 纺车很值钱"], "answer": "B"},
-                    {"id": 2, "question": "关于老木匠修纺车的场景描写，下列哪项正确？", "options": ["A. 老木匠心情烦躁", "B. 孩子们被吓跑了", "C. 刨刀飞舞时散发着清苦的槐木香", "D. 使用了铁钉固定"], "answer": "C"}
-                ]
-            },
-            "speaking": {
-                "title": "《穿行在青石板上的晨光》",
-                "passage": "清晨的薄雾像一层素雅的轻纱，静静笼罩着沉睡的群山。金色的晨曦穿透茂密的樟树枝叶，斑斑驳驳地洒落在湿润的石板路上。溪水潺潺流过石桥，欢快的鸟雀在枝桠间清脆地啼鸣。背着书包的孩子们结伴走在田埂上，清脆的读书声在清冽的空气中久久回荡。"
-            },
-            "reading": {
-                "title": "《老水井的沉思》",
-                "passage": "村头的那口老水井已有百岁高龄。井壁爬满了厚厚的青苔，宛如一件墨绿色的织锦。不管是大旱之年还是连绵梅雨，井里的清泉始终不急不缓地保持着原有的水位，明亮如镜，倒映着天上的云朵与岁月的沧桑。村里一代代的孩子在这里汲水成长，走向外面的广阔世界，而老水井始终在原地静静守护。",
-                "questions": [
-                    {"id": 1, "question": "文中写老水井‘始终不急不缓保持原有水位’，突出了水井怎样的品格？", "options": ["A. 历经沧桑依然从容淡定、恒久守候", "B. 水量太少无法灌溉", "C. 水井无人问津的失落", "D. 水温常年不变"], "answer": "A"},
-                    {"id": 2, "question": "第二句将‘青苔’比作‘织锦’的作用是：", "options": ["A. 说明水井没人打扫", "B. 增添诗意与悠久历史的厚重感", "C. 提醒大家井边湿滑危险", "D. 说明井水不能喝"], "answer": "B"}
-                ]
-            },
-            "writing": {
-                "topic": "《村头那处我常停留的角落》",
-                "prompt": "在你的家乡或校园里，一定有某一个角落（如老树下、田埂边、院落旁），曾陪伴你度过等待与成长的时光。请抓住细节写一段话（80-120字），表达真情实感。"
-            }
-        },
-        {
-            "listening": {
-                "passage": "初夏的夜晚，山谷里蛙声如潮。爷爷搬来两把竹椅放在场院中央，指着满天繁星对小亮说：‘你看那北斗星，虽然离我们很远，但走夜路的人只要抬头望见它，心里就有了方向。读书也是这个道理。’",
-                "questions": [
-                    {"id": 1, "question": "爷爷借北斗星告诉小亮一个什么道理？", "options": ["A. 夏天看星星最清楚", "B. 知识能像明灯一样指引人生的方向", "C. 走夜路必须带手电筒", "D. 爷爷懂得很多天文学常识"], "answer": "B"},
-                    {"id": 2, "question": "语段中描述的场景氛围是怎样的？", "options": ["A. 紧张热烈", "B. 宁静温馨且富有哲理", "C. 凄凉孤独", "D. 喧闹繁杂"], "answer": "B"}
-                ]
-            },
-            "speaking": {
-                "title": "《奔向远方的山溪》",
-                "passage": "纯净的山溪从冰雪融化的高峰一路蜿蜒而下。它越过嶙峋的乱石，拍打着两岸翠绿的野草，发出清脆动听的鸣响。哪怕前路有再多曲折阻隔，它也从未停下奔跑的脚步，因为它心中怀揣着一个蔚蓝而广阔的海洋梦。"
-            },
-            "reading": {
-                "title": "《土墙缝里的小草》",
-                "passage": "外婆家后院那堵风吹日晒的老土墙上，竟然从细小的泥缝里探出了一株嫩绿的小草。它没有肥沃的黑土滋养，也没有充足的雨水灌溉，仅仅凭借砖瓦间残留的微薄湿气，便倔强地舒展着细长翠绿的叶片。风吹来时，它在风中轻轻摇曳，却始终未曾弯下挺立的脊梁。",
-                "questions": [
-                    {"id": 1, "question": "作者描写土墙缝里的小草，核心赞美的是什么精神？", "options": ["A. 适应贫瘠、顽强不屈的生命力", "B. 外婆家土墙质量很差", "C. 小草喜欢长在高处", "D. 绿色植物能美化院落"], "answer": "A"},
-                    {"id": 2, "question": "‘始终未曾弯下挺立的脊梁’这句话表现了小草怎样的神态？", "options": ["A. 骄傲自大", "B. 坚韧不拔的从容气度", "C. 枝叶太干硬无法弯曲", "D. 害怕被风刮走"], "answer": "B"}
-                ]
-            },
-            "writing": {
-                "topic": "《如果我有一只信鸽》",
-                "prompt": "如果有一只能够飞越大山与江河的神奇信鸽，你想让它给远方的亲人或未来的自己带去什么讯息？请写一段真情流露的话（80-120字）。"
-            }
-        }
-    ]
-}
+# 真实调用 DeepSeek API（设置充足超时为 60 秒）
+def call_deepseek(prompt: str, system_prompt: str, user_api_key: str = None) -> dict:
+    api_key = (user_api_key or DEEPSEEK_API_KEY).strip()
+    if not api_key:
+        raise HTTPException(status_code=400, detail="未检测到有效 DeepSeek API Key，请检查配置！")
 
-def normalize_exam(data: dict) -> dict:
-    fb = random.choice(MULTI_EXAMS["mid"])
-    res = {}
-    l = data.get("listening", {})
-    res["listening"] = {
-        "passage": l.get("passage", fb["listening"]["passage"]),
-        "questions": l.get("questions", fb["listening"]["questions"])
+    url = f"{DEEPSEEK_BASE_URL}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
     }
-    s = data.get("speaking", {})
-    res["speaking"] = {
-        "title": s.get("title", fb["speaking"]["title"]),
-        "passage": s.get("passage", fb["speaking"]["passage"])
+    payload = {
+        "model": DEEPSEEK_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.8,
+        "response_format": {"type": "json_object"}
     }
-    r = data.get("reading", {})
-    res["reading"] = {
-        "title": r.get("title", fb["reading"]["title"]),
-        "passage": r.get("passage", fb["reading"]["passage"]),
-        "questions": r.get("questions", fb["reading"]["questions"])
-    }
-    w = data.get("writing", {})
-    res["writing"] = {
-        "topic": w.get("topic", fb["writing"]["topic"]),
-        "prompt": w.get("prompt", fb["writing"]["prompt"])
-    }
-    return res
+    
+    # 充足超时，保证 DeepSeek 完整生成整套卷子
+    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    res_data = resp.json()
+    return json.loads(res_data["choices"][0]["message"]["content"])
+
 
 class GenerateTestRequest(BaseModel):
     grade: str = "mid"
@@ -153,36 +101,74 @@ class GenerateTestRequest(BaseModel):
 
 @app.post("/api/generate_all_modules")
 def generate_all_modules(req: GenerateTestRequest):
+    """【真·AI出题】：由 DeepSeek 根据学段深度命制全套考卷"""
+    grade_desc_map = {
+        "low": "小学低年级 (1-2年级，以声韵母辨识与童趣故事为主)",
+        "mid": "小学中年级 (3-4年级，注重前后鼻音、句式连贯与细节概括)",
+        "high": "小学高年级 (5-6年级，注重语调修辞、情感内涵与逻辑思维)"
+    }
+    grade_desc = grade_desc_map.get(req.grade, "小学中年级 (3-4年级)")
+
     system_prompt = (
-        "你是国家级普通话测试员、语文命题专家。请生成针对乡村儿童的高品质全套试卷。"
-        "必须严格输出符合以下结构的合规 JSON：\n"
-        '{"listening": {"passage": "...", "questions": [{"id": 1, "question": "...", "options": ["A. 选项", "B. 选项", "C. 选项", "D. 选项"], "answer": "B"}]},'
-        ' "speaking": {"title": "...", "passage": "..."},'
-        ' "reading": {"title": "...", "passage": "...", "questions": [{"id": 1, "question": "...", "options": ["A. 选项", "B. 选项", "C. 选项", "D. 选项"], "answer": "A"}]},'
-        ' "writing": {"topic": "...", "prompt": "..."}}'
+        "你是一名国家级普通话水平测试员、小学语文课标命题专家，深耕中国乡村教育。"
+        "请为指定学段量身原创一套高品质全维语文测评试题（包含听力、口语、阅读、写作）。"
+        "题目必须兼具文学性与思维推断深度，坚决杜绝低幼直白问题。必须返回合规的 JSON 对象。"
     )
-    user_prompt = f"生成一套小学【{req.grade}】年级全套试卷，批次代号: {random.randint(100, 999)}。"
-    
-    # 8 秒超时设置：如果 DeepSeek 高峰拥堵超过 8 秒，直接秒级出题，绝不让用户卡住
+
+    user_prompt = f"""
+    请为【{grade_desc}】动态创作一套全维语文综合测评试卷（随机批次: {int(time.time()*1000)%10000}）：
+
+    【四模块具体命题指标】：
+    1. listening (听力理解):
+       - passage: 适合听记的哲理小故事或生活观察故事（110-150字）
+       - questions: 2道细节理解与深层推断选择题，每题必须包含 id, question, options (A/B/C/D四个完整选项), answer (正确选项字母如 "A"或"B")
+    2. speaking (口语表达):
+       - title: 朗读文章标题
+       - passage: 优美散文语段（110-140字，融入平翘舌zh/ch/sh、前后鼻音en/eng、in/ing等易错发音）
+    3. reading (阅读理解):
+       - title: 阅读短文标题
+       - passage: 寓意深刻的自然观察或生活哲理微短文（160-220字）
+       - questions: 2道深度主旨推断或词句含义分析题，每题包含 id, question, options (A/B/C/D四个选项), answer (正确选项字母)
+    4. writing (核心写作):
+       - topic: 作文题目
+       - prompt: 启发式情境引导语（80-120字要求，激发乡村儿童真情实感表达）
+
+    严格返回如下结构的合规 JSON：
+    {{
+      "grade_desc": "{grade_desc}",
+      "listening": {{
+        "passage": "听力播报正文...",
+        "questions": [
+          {{ "id": 1, "question": "听力题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "B" }},
+          {{ "id": 2, "question": "听力题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "C" }}
+        ]
+      }},
+      "speaking": {{
+        "title": "朗读篇名",
+        "passage": "朗读全文..."
+      }},
+      "reading": {{
+        "title": "阅读短文标题",
+        "passage": "阅读正文...",
+        "questions": [
+          {{ "id": 1, "question": "阅读题目1...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "A" }},
+          {{ "id": 2, "question": "阅读题目2...", "options": ["A. xxx", "B. xxx", "C. xxx", "D. xxx"], "answer": "D" }}
+        ]
+      }},
+      "writing": {{
+        "topic": "写作题目",
+        "prompt": "情境引导语..."
+      }}
+    }}
+    """
+
     try:
-        api_key = (req.api_key or DEEPSEEK_API_KEY).strip()
-        url = f"{DEEPSEEK_BASE_URL}/chat/completions"
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        payload = {
-            "model": DEEPSEEK_MODEL,
-            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
-            "temperature": 0.7,
-            "response_format": {"type": "json_object"}
-        }
-        resp = requests.post(url, headers=headers, json=payload, timeout=8)
-        resp.raise_for_status()
-        raw = json.loads(resp.json()["choices"][0]["message"]["content"])
-        cleaned = normalize_exam(raw)
-        return {"status": "success", "engine": "DeepSeek-V3 实时命题", "data": cleaned}
+        data = call_deepseek(user_prompt, system_prompt, req.api_key)
+        return {"status": "success", "engine": "DeepSeek-V3 实时命题", "data": data}
     except Exception as e:
-        print(f"DeepSeek 响应超时或拥堵，启用秒开机制: {e}")
-        fb = random.choice(MULTI_EXAMS["mid"])
-        return {"status": "success", "engine": "精选课标试题库 (极速秒开)", "data": fb}
+        print(f"DeepSeek 出题报错: {e}")
+        raise HTTPException(status_code=500, detail=f"DeepSeek 命题失败: {str(e)}")
+
 
 class EvaluateRequest(BaseModel):
     student_id: str
@@ -193,33 +179,70 @@ class EvaluateRequest(BaseModel):
 
 @app.post("/api/evaluate_submission")
 def evaluate_submission(req: EvaluateRequest):
-    l_score = random.randint(82, 94)
-    r_score = random.randint(85, 95)
-    s_score = random.randint(62, 72)
-    w_score = random.randint(68, 76)
-    overall = int((l_score + r_score + s_score + w_score) / 4)
-    data = {
-        "scores": {"listening": l_score, "speaking": s_score, "reading": r_score, "writing": w_score, "overall": overall},
-        "level": "二级甲等 (良好)",
-        "gap_analysis": f"该学生的输入型能力（听力 {l_score} 分、阅读 {r_score} 分）表现扎实，但输出型能力（口语 {s_score} 分、写作 {w_score} 分）存在明显断层，呈现出伴读缺失环境中‘能听懂读懂，但羞于开口、难于成文’的典型留守特征。",
-        "rubric_table": [
-            {"dimension": "听力理解 (Listening)", "max_score": 100, "score": l_score, "criteria": "准确抓取细节与隐喻推断", "deduction_analysis": "核心情节提取准确，深层隐喻推断稍显犹豫", "status": "优秀"},
-            {"dimension": "口语表达 (Speaking)", "max_score": 100, "score": s_score, "criteria": "普通话声韵调规范自然", "deduction_analysis": "平翘舌界限稍模糊；后半程音量衰减吞音", "status": "需强化"},
-            {"dimension": "阅读理解 (Reading)", "max_score": 100, "score": r_score, "criteria": "快速把握主旨与修辞深意", "deduction_analysis": "叙述脉络把握清晰，识字基础扎实", "status": "优秀"},
-            {"dimension": "核心写作 (Writing)", "max_score": 100, "score": w_score, "criteria": "书面用词丰富，情感真挚连贯", "deduction_analysis": "情感真挚，但多使用口语化短句，书面词储备较少", "status": "中等"}
-        ],
-        "rural_speech_diagnostic": [
-            "平舌翘舌音位移：受方言影响 zh/ch/sh 舌位普遍偏前",
-            "音量渐弱效应：独诵时后半段吞音明显，表现出缺乏肯定的羞怯心理",
-            "书面语输出受限：阅读能懂高阶词，书面写作提取词汇相对困难"
-        ],
-        "teaching_advice": [
-            "课前双人结对朗读互纠，强化平翘舌音肌肉记忆。",
-            "开设‘亲情语音明信片’活动，鼓励每周为父母录一段音频，建立表达自信。",
-            "写作提供词汇支架卡，逐步将口语习惯过渡为规范书面语。"
-        ]
-    }
-    return {"status": "success", "data": data}
+    """【真·AI打分】：由 DeepSeek 亲自批阅作答，量化打分并生成 Rubric 与多维图谱数据"""
+    grade_desc_map = {"low": "小学低年级", "mid": "小学中年级", "high": "小学高年级"}
+    grade_desc = grade_desc_map.get(req.grade, "小学中年级")
+
+    system_prompt = (
+        "你是一名国家级普通话测试员、儿童语言心理学专家及语文阅卷专家。"
+        "请对乡村小学留守儿童的实际作答（尤其是写作作文内容、口语用时和选择题）进行严谨客观的托福式多维打分。"
+        "必须结合学生实际写出的作文内容给出具体评析，严禁千篇一律套话。必须返回合规 JSON。"
+    )
+
+    user_prompt = f"""
+    【考生身份】：学号 {req.student_id}（学段: {grade_desc}）
+    【试卷考题内容】：
+    - 听力材料: {req.test_data.get('listening', {}).get('passage', '')}
+    - 听力题目与答案: {json.dumps(req.test_data.get('listening', {}).get('questions', []), ensure_ascii=False)}
+    - 口语朗读文本: {req.test_data.get('speaking', {}).get('passage', '')}
+    - 阅读材料与题目: {json.dumps(req.test_data.get('reading', {}), ensure_ascii=False)}
+    - 写作题目与要求: {json.dumps(req.test_data.get('writing', {}), ensure_ascii=False)}
+
+    【学生实际作答内容】：
+    - 听力选择作答: {req.student_answers.get('listening', {})}
+    - 口语朗读实际用时: {req.student_answers.get('speaking_duration', 0)} 秒
+    - 阅读选择作答: {req.student_answers.get('reading', {})}
+    - 核心写作学生实际提交作文: {json.dumps(req.student_answers.get('writing', ''), ensure_ascii=False)}
+
+    【打分与诊断要求】：
+    请客观给出四个维度分值（0-100分），并撰写标准 Rubric 打分细则表和留守儿童语言发展诊断报告。
+
+    严格返回如下 JSON 结构：
+    {{
+      "scores": {{
+        "listening": 85,
+        "speaking": 68,
+        "reading": 90,
+        "writing": 72,
+        "overall": 79
+      }},
+      "level": "二级甲等 / 良好",
+      "gap_analysis": "深入分析该学生在输入型能力与输出型能力之间的发展断层特征...",
+      "rubric_table": [
+        {{ "dimension": "听力理解 (Listening)", "max_score": 100, "score": 85, "criteria": "评分基准...", "deduction_analysis": "具体失分与得分析...", "status": "优秀" }},
+        {{ "dimension": "口语表达 (Speaking)", "max_score": 100, "score": 68, "criteria": "评分基准...", "deduction_analysis": "具体分析...", "status": "需强化" }},
+        {{ "dimension": "阅读理解 (Reading)", "max_score": 100, "score": 90, "criteria": "评分基准...", "deduction_analysis": "具体分析...", "status": "优秀" }},
+        {{ "dimension": "核心写作 (Writing)", "max_score": 100, "score": 72, "criteria": "结合学生作文语句、词汇的评分基准...", "deduction_analysis": "针对学生真实作文内容的批改点评...", "status": "中等" }}
+      ],
+      "rural_speech_diagnostic": [
+        "针对发音与心理特征诊断项1",
+        "针对发音与心理特征诊断项2",
+        "针对书面表达特征诊断项3"
+      ],
+      "teaching_advice": [
+        "教学提升对策1",
+        "亲情伴读对策2",
+        "写作支架对策3"
+      ]
+    }}
+    """
+
+    try:
+        data = call_deepseek(user_prompt, system_prompt, req.api_key)
+        return {"status": "success", "engine": "DeepSeek-V3 真实批阅", "data": data}
+    except Exception as e:
+        print(f"DeepSeek 打分报错: {e}")
+        raise HTTPException(status_code=500, detail=f"DeepSeek 批阅失败: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
